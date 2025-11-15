@@ -4,12 +4,14 @@
 ## URL Frontend: SU_URL_AQUÍ
 ## URL Backend: SU_URL_AQUÍ
 ## Nombre estudiante 1: 
-## Nombre estudinate 2:
+Martín Polo Santini - 335656
+## Nombre estudiante 2:
+Pablo Andrés Tamayo González - 341631
 
 # MODIFIQUE ESTE README AGREGANDO LA INFORMACIÓN QUE CONSIDERE PERTINENTE
 
 # Reglas
 - Recuerde subir su código antes del 17 de noviembre de 2025, 11:59PM
-- No se adminten entregas tardías
+- No se admiten entregas tardías
 - Si la entrega final no está desplegada, no se califica
 - Si hay modificaciones luego de la fecha establecida, no se calificará la parte técnica
