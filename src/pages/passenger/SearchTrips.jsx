@@ -18,31 +18,87 @@ function getInitials(firstName, lastName) {
 function extractDriverId(trip) {
   if (!trip) return null;
   
-  // Primero intentar driverId directo
-  if (trip.driverId) {
-    const id = trip.driverId;
-    // Si es un objeto, extraer _id o id
-    if (typeof id === 'object' && id !== null) {
-      return id._id?.toString() || id.id?.toString() || null;
+  // Función auxiliar para normalizar y validar el ID
+  const normalizeAndValidateId = (id) => {
+    if (!id) return null;
+    
+    // Si es null o undefined, retornar null
+    if (id === null || id === undefined) return null;
+    
+    // Convertir a string si es necesario
+    let idStr = null;
+    
+    // Si es un objeto, intentar extraer el ID de varias formas
+    if (typeof id === 'object') {
+      // Intentar _id primero (formato MongoDB)
+      if (id._id) {
+        idStr = String(id._id).trim();
+      }
+      // Si no, intentar id
+      else if (id.id) {
+        idStr = String(id.id).trim();
+      }
+      // Si el objeto tiene un método toString que retorna algo útil
+      else if (id.toString && id.toString() !== '[object Object]') {
+        const str = id.toString().trim();
+        // Solo usar si parece un ObjectId
+        if (/^[a-f\d]{24}$/i.test(str)) {
+          idStr = str;
+        }
+      }
+      
+      // Si aún no tenemos un string válido, retornar null
+      if (!idStr || idStr === '[object Object]') {
+        console.warn('[SearchTrips] Could not extract ID from object:', id);
+        return null;
+      }
+    } else {
+      // Si no es objeto, convertir directamente a string
+      idStr = String(id).trim();
     }
-    return String(id);
+    
+    if (!idStr || idStr === '[object Object]' || idStr === 'null' || idStr === 'undefined') {
+      return null;
+    }
+    
+    // Validar que sea un ObjectId válido de MongoDB (24 caracteres hexadecimales)
+    const objectIdPattern = /^[a-f\d]{24}$/i;
+    if (!objectIdPattern.test(idStr)) {
+      console.warn('[SearchTrips] Invalid driverId format:', idStr);
+      return null;
+    }
+    
+    return idStr;
+  };
+  
+  // Primero intentar driverId directo
+  if (trip.driverId !== undefined && trip.driverId !== null) {
+    const id = normalizeAndValidateId(trip.driverId);
+    if (id) {
+      console.log('[SearchTrips] Found driverId from trip.driverId:', id);
+      return id;
+    }
   }
   
   // Si no, intentar desde driver.id
-  if (trip.driver?.id) {
-    const id = trip.driver.id;
-    // Si es un objeto, extraer _id o id
-    if (typeof id === 'object' && id !== null) {
-      return id._id?.toString() || id.id?.toString() || null;
+  if (trip.driver?.id !== undefined && trip.driver?.id !== null) {
+    const id = normalizeAndValidateId(trip.driver.id);
+    if (id) {
+      console.log('[SearchTrips] Found driverId from trip.driver.id:', id);
+      return id;
     }
-    return String(id);
   }
   
   // Si no, intentar desde driver._id
-  if (trip.driver?._id) {
-    return String(trip.driver._id);
+  if (trip.driver?._id !== undefined && trip.driver?._id !== null) {
+    const id = normalizeAndValidateId(trip.driver._id);
+    if (id) {
+      console.log('[SearchTrips] Found driverId from trip.driver._id:', id);
+      return id;
+    }
   }
   
+  console.warn('[SearchTrips] No valid driverId found in trip:', trip);
   return null;
 }
 
@@ -1370,9 +1426,54 @@ export default function SearchTrips() {
                     {(() => {
                       const driverId = extractDriverId(selectedTrip);
                       
-                      return driverId ? (
+                      // Log para debugging
+                      console.log('[SearchTrips] Extracted driverId:', driverId, 'Type:', typeof driverId);
+                      console.log('[SearchTrips] selectedTrip data:', {
+                        driverId: selectedTrip.driverId,
+                        driver: selectedTrip.driver,
+                        driverIdType: typeof selectedTrip.driverId,
+                        driverIdValue: selectedTrip.driverId
+                      });
+                      
+                      // Asegurar que driverId sea un string válido antes de renderizar el Link
+                      const isValidDriverId = driverId && 
+                        typeof driverId === 'string' && 
+                        /^[a-f\d]{24}$/i.test(driverId);
+                      
+                      if (!isValidDriverId) {
+                        console.warn('[SearchTrips] Invalid or missing driverId, showing plain text');
+                        return (
+                          <p style={{
+                            fontSize: '1.2rem',
+                            fontWeight: '500',
+                            color: '#1c1917',
+                            margin: '0 0 4px 0',
+                            fontFamily: 'Inter, sans-serif'
+                          }}>
+                            {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName}
+                          </p>
+                        );
+                      }
+                      
+                      // Asegurar que driverId sea string (por si acaso)
+                      const driverIdString = String(driverId);
+                      
+                      return (
                         <Link
-                          to={`/drivers/${driverId}`}
+                          to={`/drivers/${driverIdString}`}
+                          onClick={(e) => {
+                            // Validar nuevamente antes de navegar
+                            if (!driverIdString || !/^[a-f\d]{24}$/i.test(driverIdString)) {
+                              e.preventDefault();
+                              console.error('[SearchTrips] Invalid driverId, preventing navigation:', driverIdString);
+                              setToast({
+                                type: 'error',
+                                message: 'Error: ID del conductor no válido'
+                              });
+                            } else {
+                              console.log('[SearchTrips] Navigating to driver profile:', `/drivers/${driverIdString}`);
+                            }
+                          }}
                           style={{
                             fontSize: '1.2rem',
                             fontWeight: '500',
@@ -1388,16 +1489,6 @@ export default function SearchTrips() {
                         >
                           {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName} {'→'}
                         </Link>
-                      ) : (
-                        <p style={{
-                          fontSize: '1.2rem',
-                          fontWeight: '500',
-                          color: '#1c1917',
-                          margin: '0 0 4px 0',
-                          fontFamily: 'Inter, sans-serif'
-                        }}>
-                          {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName}
-                        </p>
                       );
                     })()}
                     {selectedTrip.vehicle && (
