@@ -41,11 +41,14 @@ export default function MyVehicle() {
   // Recargar vehículo cuando cambia el parámetro de refresh en la URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('refresh')) {
+    const refreshParam = urlParams.get('refresh');
+    if (refreshParam) {
       // Limpiar el parámetro de la URL
       window.history.replaceState({}, '', '/driver/my-vehicle');
-      // Recargar vehículo con nuevo timestamp
-      loadVehicle();
+      // Esperar un momento para asegurar que el servidor haya procesado la imagen
+      setTimeout(() => {
+        loadVehicle();
+      }, 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [window.location.search]);

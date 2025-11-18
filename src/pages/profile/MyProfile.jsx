@@ -72,31 +72,35 @@ export default function MyProfile() {
         profilePhoto: selectedFile,
       });
       
-      // Reiniciar error de imagen y preview antes de actualizar
+      // Reiniciar error de imagen
       setImageError(false);
       setNavbarImageError(false);
       
-      // Limpiar preview URL para liberar memoria
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      setSelectedFile(null);
-      setPreviewUrl(null);
+      console.log('[MyProfile] Updated profile from server:', updatedProfile);
+      console.log('[MyProfile] Profile photo URL:', updatedProfile.profilePhotoUrl);
       
       // Actualizar estado del perfil con nuevo timestamp para forzar recarga de imagen
+      // Usar la respuesta del servidor directamente (ya incluye la nueva URL de la imagen)
       const profileWithCacheKey = {
         ...updatedProfile,
         _imageCacheKey: Date.now() // Clave de caché única para forzar recarga
       };
+      
+      // Actualizar el estado del perfil primero
       setProfile(profileWithCacheKey);
       setUser(profileWithCacheKey);
-      setSuccess('Foto de perfil actualizada correctamente');
       
-      // Forzar un pequeño retraso para asegurar actualizaciones de estado antes de cargar imagen
+      // Limpiar preview y archivo seleccionado DESPUÉS de actualizar el estado
+      // Esto permite que la nueva imagen del servidor se muestre antes de limpiar el preview
       setTimeout(() => {
-        // Recargar perfil para asegurar que tenemos los datos más recientes del servidor
-        loadProfile();
-      }, 300);
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setSelectedFile(null);
+        setPreviewUrl(null);
+      }, 500);
+      
+      setSuccess('Foto de perfil actualizada correctamente');
     } catch (err) {
       if (err.code === 'invalid_file_type') {
         setError('Tipo de archivo no válido. Solo se permiten imágenes JPEG, PNG o WebP');
@@ -292,7 +296,8 @@ export default function MyProfile() {
               overflow: 'hidden',
               flexShrink: 0
             }}>
-              {previewUrl ? (
+              {previewUrl && selectedFile ? (
+                // Mostrar preview mientras se está subiendo o si hay archivo seleccionado
                 <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : profile?.profilePhotoUrl && !imageError ? (
                 <img 
@@ -300,11 +305,14 @@ export default function MyProfile() {
                   alt="Profile" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   key={`profile-${profile._imageCacheKey || profile.updatedAt || Date.now()}`}
-                  onError={() => {
+                  onError={(e) => {
+                    console.error('[MyProfile] Image load error:', e);
+                    console.error('[MyProfile] Image URL:', `${getImageUrl(profile.profilePhotoUrl)}?t=${profile._imageCacheKey || profile.updatedAt || Date.now()}`);
                     // If image fails to load, show initials instead
                     setImageError(true);
                   }}
                   onLoad={() => {
+                    console.log('[MyProfile] Image loaded successfully');
                     // Reset error state on successful load
                     setImageError(false);
                   }}
