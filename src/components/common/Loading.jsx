@@ -1,11 +1,5 @@
-/**
- * Loading Component - Wheels UniSabana Design System
- * Loading indicators for different use cases
- */
-
-/**
- * Spinner component
- */
+// Componente de carga: indicadores de carga para diferentes casos de uso
+// Componente Spinner: spinner animado de diferentes tamaños
 export function Spinner({ size = 'md', className = '' }) {
   const sizes = {
     xs: 'h-4 w-4',
@@ -39,9 +33,7 @@ export function Spinner({ size = 'md', className = '' }) {
   );
 }
 
-/**
- * Full page loading overlay
- */
+// Overlay de carga de página completa
 export function LoadingOverlay({ message = 'Cargando...' }) {
   return (
     <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">

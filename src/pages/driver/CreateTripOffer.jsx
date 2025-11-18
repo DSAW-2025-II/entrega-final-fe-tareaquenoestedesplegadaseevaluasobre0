@@ -1,9 +1,10 @@
+// Página de creación de oferta de viaje: permite a los conductores crear nuevas ofertas de viaje
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { createTripOffer } from '../../api/tripOffer';
 import { getMyVehicle } from '../../api/vehicle';
-import logo from '../../assets/images/UniSabana Logo.png';
+import Navbar from '../../components/common/Navbar';
 
 export default function CreateTripOffer() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function CreateTripOffer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Cargar vehículo del conductor
   const loadVehicle = async () => {
     try {
       setLoadingVehicle(true);
@@ -39,6 +41,7 @@ export default function CreateTripOffer() {
     }
   };
 
+  // Manejar envío del formulario de creación de viaje
   const onSubmit = async (data) => {
     if (!vehicle) {
       setError('No tienes un vehículo registrado');
@@ -50,20 +53,20 @@ export default function CreateTripOffer() {
     setSuccess(null);
 
     try {
-      // Prepare trip data
+      // Preparar datos del viaje
       const tripData = {
         vehicleId: vehicle.id,
         origin: {
           text: data.originText,
           geo: {
-            lat: 0, // Default value
+            lat: 0, // Valor por defecto
             lng: 0,
           },
         },
         destination: {
           text: data.destinationText,
           geo: {
-            lat: 0, // Default value
+            lat: 0, // Valor por defecto
             lng: 0,
           },
         },
@@ -82,11 +85,16 @@ export default function CreateTripOffer() {
       }, 1500);
     } catch (err) {
       console.error('[CreateTripOffer] Error:', err);
+      console.error('[CreateTripOffer] Error details:', err.details);
       
       if (err.code === 'overlapping_trip') {
         setError('Ya tienes otro viaje publicado en este horario');
       } else if (err.code === 'forbidden_owner') {
         setError('El vehículo no te pertenece');
+      } else if (err.code === 'invalid_schema' && err.details && Array.isArray(err.details)) {
+        // Mostrar errores de validación
+        const validationErrors = err.details.map(d => d.issue || d.message).join(', ');
+        setError(`Error de validación: ${validationErrors}`);
       } else if (err.message?.includes('exceeds vehicle capacity')) {
         setError(`El número de asientos excede la capacidad del vehículo (${vehicle.capacity})`);
       } else if (err.message?.includes('must be in the future')) {
@@ -135,54 +143,8 @@ export default function CreateTripOffer() {
   if (!vehicle) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
-        {/* Simple Navbar */}
-        <header style={{
-          width: '100%',
-          borderBottom: '1px solid #e7e5e4',
-          backgroundColor: 'white',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{
-            maxWidth: '1280px',
-            margin: '0 auto',
-            padding: '16px 24px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <Link 
-              to="/dashboard" 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                textDecoration: 'none',
-                transition: 'opacity 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              <img 
-                src={logo} 
-                alt="Wheels UniSabana Logo" 
-                style={{ 
-                  height: '4rem', 
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-              <span style={{
-                fontSize: '20px',
-                fontWeight: 'normal',
-                color: '#1c1917',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Wheels UniSabana
-              </span>
-            </Link>
-          </div>
-        </header>
+        {/* Navbar */}
+        <Navbar />
 
         <div style={{
           maxWidth: '1280px',
@@ -234,54 +196,8 @@ export default function CreateTripOffer() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
-      {/* Simple Navbar */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Main Content */}
       <div style={{
@@ -899,15 +815,59 @@ export default function CreateTripOffer() {
       </div>
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
           .form-grid-2cols {
             grid-template-columns: 1fr !important;
+            gap: 12px !important;
           }
           .form-actions-flex {
             flex-direction: column-reverse !important;
+            gap: 12px !important;
           }
           .form-actions-flex button {
             width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+          input, textarea, select {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .form-grid-2cols {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
           }
         }
       `}</style>

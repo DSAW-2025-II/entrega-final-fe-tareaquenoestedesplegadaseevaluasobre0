@@ -1,20 +1,17 @@
+// Endpoints de auditoría administrativa: operaciones para listar y exportar logs de auditoría
 import client from './client';
 
-/**
- * List audit entries with pagination and optional filters.
- * params: { page, pageSize, actorId, entity, from, to }
- */
+// Listar auditoría: listar entradas de auditoría con paginación y filtros opcionales
+// Parámetros: page, pageSize, actorId, entity, from, to
 export async function listAudit(params = {}) {
   const response = await client.get('/admin/audit', { params });
   return response.data;
 }
 
-/**
- * Export audit entries for given query as NDJSON stream. Returns the raw response.
- * params: { actorId, entity, from, to }
- */
+// Exportar auditoría: exportar entradas de auditoría como stream NDJSON para descarga
+// Parámetros: actorId, entity, from, to
 export async function exportAudit(params = {}) {
-  // We expect NDJSON; set responseType 'blob' so caller can download
+  // Esperamos NDJSON; establecer responseType 'blob' para que el llamador pueda descargar
   const response = await client.get('/admin/audit/export', { params, responseType: 'blob' });
   return response;
 }

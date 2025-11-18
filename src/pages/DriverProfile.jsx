@@ -1,3 +1,4 @@
+// Página de perfil de conductor: página pública para ver perfil del conductor, información del vehículo y reseñas
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -10,10 +11,6 @@ import Loading from '../components/common/Loading';
 import { Star, Car, User, Calendar } from 'lucide-react';
 import { formatPhone } from '../utils/phoneFormatter';
 
-/**
- * Driver Profile Page
- * Public page to view a driver's profile, vehicle info, and reviews
- */
 export default function DriverProfile() {
   const params = useParams();
   const navigate = useNavigate();
@@ -31,10 +28,10 @@ export default function DriverProfile() {
     console.log('[DriverProfile] params object:', params);
     console.log('[DriverProfile] window.location.pathname:', window.location.pathname);
     
-    // Try multiple ways to get driverId
+    // Intentar múltiples formas de obtener driverId
     let extractedDriverId = params?.driverId;
     
-    // If not in params, try to extract from URL
+    // Si no está en params, intentar extraer de la URL
     if (!extractedDriverId) {
       const pathMatch = window.location.pathname.match(/\/drivers\/([a-f\d]{24})/i);
       extractedDriverId = pathMatch ? pathMatch[1] : null;
@@ -49,13 +46,14 @@ export default function DriverProfile() {
       return;
     }
     
-    // Store driverId in state
+    // Almacenar driverId en estado
     setDriverId(extractedDriverId);
     
-    // Load data with the extracted driverId
+    // Cargar datos con el driverId extraído
     loadDriverData(extractedDriverId);
   }, [params]);
 
+  // Cargar datos del perfil público del conductor, calificaciones y reseñas en paralelo
   const loadDriverData = async (idToUse = null) => {
     const finalDriverId = idToUse || driverId;
     
@@ -72,8 +70,8 @@ export default function DriverProfile() {
       
       console.log('[DriverProfile] Loading driver data for driverId:', finalDriverId);
       
-      // Load driver public profile, ratings and reviews in parallel
-      // The public profile endpoint includes all driver info (email, universityId, phone)
+      // Cargar perfil público del conductor, calificaciones y reseñas en paralelo
+      // El endpoint de perfil público incluye toda la información del conductor (email, universityId, phone)
       let driverProfileData = null;
       let ratingsData = null;
       let reviewsData = { items: [], total: 0, driver: null, vehicle: null };
@@ -294,6 +292,8 @@ export default function DriverProfile() {
             <div style={{
               width: 'clamp(80px, 15vw, 120px)',
               height: 'clamp(80px, 15vw, 120px)',
+              minWidth: 'clamp(80px, 15vw, 120px)',
+              minHeight: 'clamp(80px, 15vw, 120px)',
               borderRadius: '50%',
               backgroundColor: '#032567',
               display: 'flex',
@@ -304,7 +304,8 @@ export default function DriverProfile() {
               fontWeight: '600',
               fontFamily: 'Inter, sans-serif',
               overflow: 'hidden',
-              flexShrink: 0
+              flexShrink: 0,
+              aspectRatio: '1 / 1'
             }}>
               {driverInfo?.profilePhotoUrl ? (
                 <img
@@ -313,7 +314,10 @@ export default function DriverProfile() {
                   style={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    aspectRatio: '1 / 1',
+                    display: 'block'
                   }}
                 />
               ) : (
@@ -780,11 +784,53 @@ export default function DriverProfile() {
 
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
           .profile-header-flex {
             flex-direction: column !important;
             align-items: center !important;
             text-align: center !important;
+            gap: 16px !important;
+          }
+          .driver-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .profile-photo {
+            width: 120px !important;
+            height: 120px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .profile-header-flex {
+            flex-direction: row !important;
+            align-items: center !important;
+            text-align: left !important;
+            gap: 24px !important;
+          }
+          .driver-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .driver-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .profile-header-flex {
+            gap: 16px !important;
+          }
+          .profile-photo {
+            width: 100px !important;
+            height: 100px !important;
           }
         }
       `}</style>

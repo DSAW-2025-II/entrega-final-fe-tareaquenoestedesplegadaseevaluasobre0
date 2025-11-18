@@ -1,3 +1,4 @@
+// Página de inicio de sesión: autenticación de usuarios
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -18,26 +19,27 @@ export default function Login() {
     formState: { errors },
   } = useForm();
 
+  // Manejar envío del formulario de login
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
 
     try {
       const user = await login(data.corporateEmail, data.password);
-      // Get full profile including profilePhotoUrl
+      // Obtener perfil completo incluyendo profilePhotoUrl
       const fullProfile = await getCurrentUser();
       setUser(fullProfile);
 
-      // Redirect based on role: admins go to /admin, others go to /dashboard
+      // Redirigir según el rol: admins van a /admin, otros a /dashboard
       if (fullProfile.role === 'admin') {
         navigate('/admin');
       } else {
       navigate('/dashboard');
       }
     } catch (err) {
-      // Handle specific error codes and show errors on specific fields
+      // Manejar códigos de error específicos y mostrar errores en campos específicos
       if (err.code === 'invalid_credentials') {
-        // Show error on both fields for invalid credentials
+        // Mostrar error en ambos campos para credenciales inválidas
         setFieldError('corporateEmail', {
           type: 'manual',
           message: 'Correo o contraseña incorrectos'
@@ -377,6 +379,41 @@ export default function Login() {
 
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          form {
+            padding: 24px 20px !important;
+          }
+          input {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          label {
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          form {
+            padding: 40px 32px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          form {
+            padding: 24px 32px !important;
+          }
+          h1 {
+            font-size: 1.5rem !important;
+            margin-bottom: 16px !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

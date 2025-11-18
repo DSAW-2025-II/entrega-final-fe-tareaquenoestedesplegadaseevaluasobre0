@@ -1,7 +1,4 @@
-/**
- * Button Component - Wheels UniSabana Design System
- * Reusable button with different variants and sizes
- */
+// Componente Button: botón reutilizable con diferentes variantes y tamaños
 export default function Button({ 
   children, 
   variant = 'primary', 
@@ -15,7 +12,7 @@ export default function Button({
   icon,
   ...props
 }) {
-  const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
+  const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
   
   const variants = {
     primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus:ring-primary-500 shadow-sm hover:shadow-md',

@@ -1,12 +1,15 @@
+// Página de búsqueda de viajes: permite a los pasajeros buscar y reservar viajes publicados
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import { getImageUrl } from '../../utils/imageUrl';
 import { searchTrips } from '../../api/trip';
 import { createBooking } from '../../api/booking';
+import { getPendingPayments } from '../../api/payment';
 import Toast from '../../components/common/Toast';
 import Navbar from '../../components/common/Navbar';
 
+// Obtener iniciales del nombre completo
 function getInitials(firstName, lastName) {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
 }
@@ -24,10 +27,10 @@ export default function SearchTrips() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   
-  // Toast notifications
+  // Notificaciones toast
   const [toast, setToast] = useState(null);
   
-  // Search filters
+  // Filtros de búsqueda
   const [filters, setFilters] = useState({
     qOrigin: '',
     qDestination: '',
@@ -41,12 +44,38 @@ export default function SearchTrips() {
   });
   
   const [showFilters, setShowFilters] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [checkingPayments, setCheckingPayments] = useState(true);
 
   useEffect(() => {
+    checkPendingPayments();
     loadTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Refrescar pagos pendientes cuando el componente se vuelve visible (usuario navega de vuelta)
+  useEffect(() => {
+    const handleFocus = () => {
+      checkPendingPayments();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  // Verificar pagos pendientes de viajes completados
+  const checkPendingPayments = async () => {
+    try {
+      setCheckingPayments(true);
+      const data = await getPendingPayments();
+      setPendingPayments(data.bookings || []);
+    } catch (err) {
+      console.error('[SearchTrips] Error checking pending payments:', err);
+    } finally {
+      setCheckingPayments(false);
+    }
+  };
+
+  // Cargar viajes con filtros aplicados
   const loadTrips = async () => {
     setLoading(true);
     setError(null);
@@ -64,7 +93,7 @@ export default function SearchTrips() {
         params.qDestination = filters.qDestination.trim();
       }
       
-      // Date filters
+      // Filtros de fecha
       if (filters.fromDate) {
         const fromDate = new Date(filters.fromDate);
         fromDate.setHours(0, 0, 0, 0);
@@ -160,6 +189,7 @@ export default function SearchTrips() {
         tripId: selectedTrip.id,
         seats: bookingSeats,
         note: bookingNote || undefined,
+        // Payment method will be selected when paying
       });
 
       setBookingSuccess(true);
@@ -227,7 +257,66 @@ export default function SearchTrips() {
           Buscar viajes
         </h1>
 
+        {/* Block search if pending payments */}
+        {!checkingPayments && pendingPayments.length > 0 && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'start',
+              gap: '12px'
+            }}>
+              <span style={{ color: '#92400e', fontSize: '24px' }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <h3 style={{
+                  fontSize: '1.1rem',
+                  fontWeight: '500',
+                  color: '#92400e',
+                  margin: '0 0 8px 0',
+                  fontFamily: 'Inter, sans-serif'
+                }}>
+                  Tienes pagos pendientes
+                </h3>
+                <p style={{
+                  fontSize: '0.95rem',
+                  color: '#78350f',
+                  margin: '0 0 16px 0',
+                  fontFamily: 'Inter, sans-serif',
+                  lineHeight: '1.5'
+                }}>
+                  No puedes buscar nuevos viajes hasta que completes los pagos pendientes. 
+                  Ve a "Mis viajes" para realizar los pagos.
+                </p>
+                <button
+                  onClick={() => navigate('/my-trips')}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '0.95rem',
+                    fontWeight: 'normal',
+                    color: 'white',
+                    backgroundColor: '#032567',
+                    border: 'none',
+                    borderRadius: '25px',
+                    cursor: 'pointer',
+                    fontFamily: 'Inter, sans-serif'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#1A6EFF'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#032567'}
+                >
+                  Ir a Mis Viajes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Search Form */}
+        {(!checkingPayments && pendingPayments.length === 0) && (
         <form onSubmit={handleSearch} style={{
           backgroundColor: '#f0f9ff',
           padding: 'clamp(16px, 3vw, 24px)',
@@ -398,9 +487,10 @@ export default function SearchTrips() {
             )}
           </div>
         </form>
-        
+        )}
+
         {/* Advanced Filters Panel */}
-        {showFilters && (
+        {(!checkingPayments && pendingPayments.length === 0) && showFilters && (
           <div style={{
             backgroundColor: '#fafafa',
             padding: '24px',
@@ -691,7 +781,7 @@ export default function SearchTrips() {
         )}
 
         {/* Error Alert */}
-        {error && (
+        {(!checkingPayments && pendingPayments.length === 0) && error && (
           <div style={{
             backgroundColor: '#fef2f2',
             border: '1px solid #fca5a5',
@@ -725,7 +815,7 @@ export default function SearchTrips() {
         )}
 
         {/* Loading State */}
-        {loading ? (
+        {(!checkingPayments && pendingPayments.length === 0) && loading ? (
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -928,20 +1018,21 @@ export default function SearchTrips() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 50,
+            zIndex: 100,
             padding: '16px'
           }}
           onClick={() => setSelectedTrip(null)}
         >
           <div
+            className="modal-content-responsive"
             style={{
-              maxWidth: '600px',
+              maxWidth: 'clamp(280px, 90vw, 600px)',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
               backgroundColor: 'white',
               borderRadius: '16px',
-              padding: '32px',
+              padding: 'clamp(16px, 4vw, 32px)',
               boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -954,7 +1045,7 @@ export default function SearchTrips() {
               marginBottom: '24px'
             }}>
               <h2 style={{
-                fontSize: '2rem',
+                fontSize: 'clamp(1.3rem, 4vw, 2rem)',
                 fontWeight: 'normal',
                 color: '#1c1917',
                 fontFamily: 'Inter, sans-serif',
@@ -1211,6 +1302,8 @@ export default function SearchTrips() {
                   <div style={{
                     width: '60px',
                     height: '60px',
+                    minWidth: '60px',
+                    minHeight: '60px',
                     borderRadius: '50%',
                     backgroundColor: '#032567',
                     display: 'flex',
@@ -1221,7 +1314,8 @@ export default function SearchTrips() {
                     fontWeight: '600',
                     fontFamily: 'Inter, sans-serif',
                     overflow: 'hidden',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    aspectRatio: '1 / 1'
                   }}>
                     {selectedTrip.driver?.profilePhotoUrl ? (
                       <img
@@ -1230,7 +1324,10 @@ export default function SearchTrips() {
                         style={{
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover'
+                          objectFit: 'cover',
+                          borderRadius: '50%',
+                          aspectRatio: '1 / 1',
+                          display: 'block'
                         }}
                       />
                     ) : (
@@ -1345,18 +1442,19 @@ export default function SearchTrips() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 60,
+            zIndex: 110,
             padding: '16px'
           }}
           onClick={() => setShowBookingModal(false)}
         >
           <div
+            className="modal-content-responsive"
             style={{
-              maxWidth: '600px',
+              maxWidth: 'clamp(280px, 90vw, 600px)',
               width: '100%',
               backgroundColor: 'white',
               borderRadius: '16px',
-              padding: '32px',
+              padding: 'clamp(16px, 4vw, 32px)',
               boxShadow: '0 20px 25px rgba(0,0,0,0.15)',
               maxHeight: '90vh',
               overflowY: 'auto'
@@ -1371,7 +1469,7 @@ export default function SearchTrips() {
               marginBottom: '24px'
             }}>
               <h2 style={{
-                fontSize: '1.8rem',
+                fontSize: 'clamp(1.2rem, 4vw, 1.8rem)',
                 fontWeight: 'normal',
                 color: '#1c1917',
                 margin: 0,
@@ -1586,19 +1684,37 @@ export default function SearchTrips() {
 
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Global modal responsive styles */
+        .modal-content-responsive {
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content-responsive h2,
+          .modal-content-responsive h3 {
+            font-size: clamp(1rem, 4vw, 1.5rem) !important;
+          }
+          .modal-content-responsive {
+            padding: clamp(12px, 3vw, 16px) !important;
+          }
           .search-form-grid {
             grid-template-columns: 1fr !important;
+            gap: 12px !important;
           }
           .search-button,
           .clear-button {
             width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 0.9rem !important;
           }
           .trips-grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
           .filters-actions {
             flex-direction: column !important;
+            gap: 12px !important;
           }
           .filters-actions button {
             width: 100% !important;
@@ -1606,18 +1722,68 @@ export default function SearchTrips() {
           .results-header-flex {
             flex-direction: column !important;
             align-items: flex-start !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .search-form-grid {
             gap: 12px !important;
           }
+          .advanced-filters-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .search-form-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 16px !important;
+          }
           .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)) !important;
+            gap: 20px !important;
+          }
+          .filters-actions {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+          }
+          .filters-actions button {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+          .advanced-filters-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
             gap: 16px !important;
           }
         }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .search-form-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) !important;
+          }
+          .advanced-filters-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .search-form-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
+          }
+        }
+        
+        /* Hide scrollbar but keep functionality */
         .tabs-container::-webkit-scrollbar {
           display: none;
+        }
+        .tabs-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>

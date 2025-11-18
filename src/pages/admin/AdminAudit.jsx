@@ -1,3 +1,4 @@
+// Página de auditoría de admin: muestra logs de auditoría del sistema con filtros y exportación
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listAudit, exportAudit } from '../../api/adminAudit';
@@ -18,6 +19,7 @@ export default function AdminAuditPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // Obtener lista de eventos de auditoría con filtros aplicados
   async function fetchList() {
     setLoading(true);
     setError(null);
@@ -42,7 +44,7 @@ export default function AdminAuditPage() {
             params.from = date.toISOString();
           }
         } catch (e) {
-          // Invalid date, skip
+          // Fecha inválida, omitir
         }
       }
       
@@ -53,7 +55,7 @@ export default function AdminAuditPage() {
             params.to = date.toISOString();
           }
         } catch (e) {
-          // Invalid date, skip
+          // Fecha inválida, omitir
         }
       }
       const res = await listAudit(params);
@@ -858,6 +860,80 @@ export default function AdminAuditPage() {
           </div>
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          table {
+            font-size: 0.8rem !important;
+          }
+          th, td {
+            padding: 8px 6px !important;
+            font-size: 0.75rem !important;
+          }
+          .filters-form {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            width: 100% !important;
+          }
+          .pagination-controls {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .pagination-controls button {
+            width: 100% !important;
+          }
+          .export-button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          table {
+            font-size: 0.85rem !important;
+          }
+          th, td {
+            padding: 10px 8px !important;
+          }
+          .filters-form {
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          th, td {
+            padding: 10px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          table {
+            font-size: 0.8rem !important;
+          }
+          th, td {
+            padding: 8px 6px !important;
+          }
+        }
+        
+        /* Ensure table scrolls horizontally on small screens */
+        div[style*="overflowX"] {
+          -webkit-overflow-scrolling: touch;
+        }
+      `}</style>
     </ProtectedRoute>
   );
 }

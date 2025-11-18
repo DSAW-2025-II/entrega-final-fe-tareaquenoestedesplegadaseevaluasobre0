@@ -1,7 +1,4 @@
-/**
- * Card Component - Wheels UniSabana Design System
- * Reusable card container with consistent styling
- */
+// Componente Card: contenedor de tarjeta reutilizable con estilo consistente
 export default function Card({ 
   children, 
   className = '', 

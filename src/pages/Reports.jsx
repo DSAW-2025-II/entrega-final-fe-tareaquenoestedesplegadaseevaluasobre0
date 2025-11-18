@@ -1,13 +1,11 @@
+// Página de reportes: muestra información sobre reportes recibidos por el usuario
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import Navbar from '../components/common/Navbar';
 import { getMyReportsReceived } from '../api/user';
 
-/**
- * Reports Page
- * Shows information about user reports and reporting functionality
- */
+// Etiquetas de categorías de reporte
 const CATEGORY_LABELS = {
   abuse: 'Abuso',
   harassment: 'Acoso',
@@ -17,6 +15,7 @@ const CATEGORY_LABELS = {
   other: 'Otro'
 };
 
+// Etiquetas de estados de reporte
 const STATUS_LABELS = {
   pending: 'Pendiente',
   reviewed: 'Revisado',
@@ -30,7 +29,7 @@ export default function Reports() {
   const [loadingReports, setLoadingReports] = useState(true);
   const isDriver = user?.role === 'driver';
 
-  // Fetch reports received
+  // Obtener reportes recibidos
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -461,6 +460,41 @@ export default function Reports() {
           </div>
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .report-card {
+            padding: 16px !important;
+          }
+          .report-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .report-badge {
+            font-size: 0.75rem !important;
+            padding: 4px 10px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .report-header-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .report-card {
+            padding: 12px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

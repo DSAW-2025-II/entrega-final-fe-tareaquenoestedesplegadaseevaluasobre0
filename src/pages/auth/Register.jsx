@@ -1,3 +1,4 @@
+// Página de registro: creación de nuevas cuentas de usuario
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -19,18 +20,19 @@ export default function Register() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      role: 'passenger', // Default role
+      role: 'passenger', // Rol por defecto
     },
   });
 
   const password = watch('password');
 
+  // Manejar envío del formulario de registro
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Format phone to E.164 format (add +57 prefix for Colombia)
+      // Formatear teléfono a formato E.164 (agregar prefijo +57 para Colombia)
       const formattedPhone = data.phone.startsWith('+') 
         ? data.phone 
         : `+57${data.phone}`;
@@ -47,10 +49,10 @@ export default function Register() {
 
       setUser(user);
 
-      // Redirect to dashboard
+      // Redirigir al dashboard
       navigate('/dashboard');
     } catch (err) {
-      // Handle specific error codes and show errors on specific fields
+      // Manejar códigos de error específicos y mostrar errores en campos específicos
       if (err.code === 'duplicate_email') {
         setFieldError('corporateEmail', {
           type: 'manual',
@@ -67,7 +69,6 @@ export default function Register() {
           message: 'Este número de teléfono ya está registrado.'
         });
       } else if (err.code === 'invalid_schema') {
-        // Show generic error banner for schema validation
         setError('Por favor verifica que todos los campos estén correctos.');
       } else if (err.code === 'network_error') {
         setError(err.message);
@@ -596,9 +597,52 @@ export default function Register() {
 
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 640px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
           .grid-2cols {
             grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          form {
+            padding: 24px 20px !important;
+          }
+          input {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          label {
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 640px */
+        @media (min-width: 481px) and (max-width: 640px) {
+          .grid-2cols {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 641px to 768px */
+        @media (min-width: 641px) and (max-width: 768px) {
+          .grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          form {
+            padding: 20px 32px !important;
+          }
+          h1 {
+            font-size: 1.5rem !important;
+            margin-bottom: 16px !important;
+          }
+          .grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
           }
         }
       `}</style>

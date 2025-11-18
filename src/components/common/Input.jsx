@@ -1,9 +1,6 @@
+// Componente Input: campo de texto reutilizable con soporte para etiqueta y mensaje de error
 import React from 'react';
 
-/**
- * Input Component - Wheels UniSabana Design System
- * Reusable text input with label and error message support
- */
 const Input = React.forwardRef(({ 
   label, 
   error, 

@@ -1,3 +1,4 @@
+// Componente de cambio de contraseña: permite a los usuarios cambiar su contraseña
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { changePassword } from '../../api/auth';
@@ -10,6 +11,7 @@ export default function ChangePassword({ onSuccess }) {
   const { register, handleSubmit, formState: { errors }, reset, watch, setError: setFieldError } = useForm();
   const newPassword = watch('newPassword');
 
+  // Manejar envío del formulario de cambio de contraseña
   const onSubmit = async (data) => {
     setLoading(true);
     setError(null);
@@ -22,16 +24,16 @@ export default function ChangePassword({ onSuccess }) {
       });
 
       setSuccess('Contraseña cambiada exitosamente');
-      reset(); // Clear form
+      reset(); // Limpiar formulario
       
-      // Call onSuccess callback after a short delay
+      // Llamar callback onSuccess después de un breve retraso
       if (onSuccess) {
         setTimeout(() => {
           onSuccess();
         }, 2000);
       }
     } catch (err) {
-      // Show errors on specific fields
+      // Mostrar errores en campos específicos
       if (err.code === 'invalid_credentials') {
         setFieldError('currentPassword', {
           type: 'manual',
@@ -301,6 +303,42 @@ export default function ChangePassword({ onSuccess }) {
           </button>
         </div>
       </form>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          form {
+            padding: 20px 16px !important;
+          }
+          input {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          label {
+            font-size: 1rem !important;
+          }
+          button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          form {
+            padding: 24px 20px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          form {
+            padding: 16px 20px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

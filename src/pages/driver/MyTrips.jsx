@@ -1,11 +1,11 @@
+// Página de mis viajes (conductor): lista y gestiona las ofertas de viaje del conductor
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import useAuthStore from '../../store/authStore';
 import { getCurrentUser } from '../../api/auth';
 import { getMyTripOffers, cancelTripOffer } from '../../api/tripOffer';
-import RoleSwitch from '../../components/common/RoleSwitch';
-import NotificationBell from '../../components/notifications/NotificationBell';
-import logo from '../../assets/images/UniSabana Logo.png';
+import Navbar from '../../components/common/Navbar';
 
 export default function MyTrips() {
   const navigate = useNavigate();
@@ -17,36 +17,20 @@ export default function MyTrips() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tripToCancel, setTripToCancel] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [profile, setProfile] = useState(null);
-
-  // Load profile to check if user has vehicle (for role switch)
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (user && !profile) {
-        try {
-          const fullProfile = await getCurrentUser();
-          setProfile(fullProfile);
-        } catch (err) {
-          // Silently fail
-        }
-      }
-    };
-    loadProfile();
-  }, [user?.id]);
 
   useEffect(() => {
     loadTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
+  // Cargar viajes del conductor con filtros aplicados
   const loadTrips = async () => {
     try {
       setLoading(true);
       setError(null);
       
       const filters = {};
-      // Only send valid backend statuses to the API
+      // Solo enviar estados válidos del backend a la API
       if (statusFilter !== 'all' && statusFilter !== 'in_progress') {
         filters.status = statusFilter;
       }
@@ -61,6 +45,7 @@ export default function MyTrips() {
     }
   };
 
+  // Manejar cancelación de viaje
   const handleCancelTrip = async () => {
     if (!tripToCancel) return;
 
@@ -95,8 +80,8 @@ export default function MyTrips() {
           borderRadius: '20px',
           fontSize: '0.85rem',
           fontWeight: '500',
-          backgroundColor: '#fef3c7',
-          color: '#92400e',
+          backgroundColor: 'rgba(3, 37, 103, 0.1)',
+          color: '#032567',
           fontFamily: 'Inter, sans-serif'
         }}>
           En Progreso
@@ -106,9 +91,9 @@ export default function MyTrips() {
 
     const badges = {
       draft: { bg: '#f5f5f4', color: '#57534e', text: 'Borrador' },
-      published: { bg: '#e0f2fe', color: '#032567', text: 'Publicado' },
+      published: { bg: 'rgba(3, 37, 103, 0.1)', color: '#032567', text: 'Publicado' },
       canceled: { bg: '#f5f5f4', color: '#57534e', text: 'Cancelado' },
-      completed: { bg: '#f5f5f4', color: '#57534e', text: 'Completado' },
+      completed: { bg: 'rgba(3, 37, 103, 0.1)', color: '#032567', text: 'Completado' },
     };
     const badge = badges[status] || badges.draft;
     return (
@@ -218,215 +203,69 @@ export default function MyTrips() {
     );
   }
 
+  const AlertNotification = ({ type, message, onClose }) => (
+    <div className="notification-alert" style={{
+      position: 'fixed',
+      top: '80px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'calc(100% - 32px)',
+      maxWidth: '1280px',
+      zIndex: 99999,
+      backgroundColor: type === 'error' ? '#fef2f2' : '#f0fdf4',
+      border: `1px solid ${type === 'error' ? '#fca5a5' : '#86efac'}`,
+      borderRadius: '12px',
+      padding: '16px',
+      marginBottom: '24px',
+      display: 'flex',
+      alignItems: 'start',
+      gap: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      pointerEvents: 'auto'
+    }}>
+      {type === 'success' && <span style={{ color: '#16a34a', fontSize: '20px' }}>OK</span>}
+      <div style={{ flex: 1 }}>
+        <p style={{ 
+          color: type === 'error' ? '#991b1b' : '#15803d', 
+          fontSize: '14px', 
+          margin: 0, 
+          fontFamily: 'Inter, sans-serif' 
+        }}>
+          {message}
+        </p>
+      </div>
+      <button
+        onClick={onClose}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: type === 'error' ? '#991b1b' : '#15803d',
+          cursor: 'pointer',
+          padding: '0',
+          fontSize: '18px',
+          lineHeight: '1'
+        }}
+      >
+        X
+      </button>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
       {/* Navbar */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
+      <Navbar activeLink="my-trips" />
 
-          {/* Center: Navigation Links */}
-          <nav style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '32px'
-          }}>
-            <Link
-              to="/my-trips"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#032567',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif',
-                borderBottom: '2px solid #032567'
-              }}
-            >
-              Mis viajes
-            </Link>
-            
-            <Link
-              to="/reports"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Reportes
-            </Link>
-          </nav>
+      {/* Alerts - Rendered via Portal to body */}
+      {error && createPortal(
+        <AlertNotification type="error" message={error} onClose={() => setError(null)} />,
+        document.body
+      )}
 
-          {/* Right: Notifications + Role Status + Profile */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Notifications */}
-            {user && (
-              <NotificationBell />
-            )}
-
-            {/* Role Switch - Only shows if user has vehicle (can switch roles) */}
-            {profile?.driver?.hasVehicle ? (
-              <RoleSwitch 
-                hasVehicle={profile.driver.hasVehicle} 
-                currentRole={user?.role || 'driver'} 
-              />
-            ) : (
-              <div style={{
-                padding: '6px 16px',
-                backgroundColor: '#032567',
-                color: 'white',
-                border: '2px solid #032567',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Conductor
-              </div>
-            )}
-
-            {/* Profile button with menu */}
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{
-                  width: '45px',
-                  height: '45px',
-                  borderRadius: '50%',
-                  backgroundColor: '#032567',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontFamily: 'Inter, sans-serif',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                {getInitials(user?.firstName, user?.lastName)}
-              </button>
-
-              {showProfileMenu && (
-                <>
-                  <div
-                    style={{
-                      position: 'fixed',
-                      inset: 0,
-                      zIndex: 10
-                    }}
-                    onClick={() => setShowProfileMenu(false)}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '55px',
-                    backgroundColor: 'white',
-                    border: '1px solid #e7e5e4',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    minWidth: '200px',
-                    overflow: 'hidden',
-                    zIndex: 20
-                  }}>
-                    <Link
-                      to="/profile"
-                      style={{
-                        display: 'block',
-                        padding: '12px 20px',
-                        color: '#1c1917',
-                        textDecoration: 'none',
-                        fontSize: '0.95rem',
-                        fontFamily: 'Inter, sans-serif',
-                        borderBottom: '1px solid #f5f5f4',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Mi perfil
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        width: '100%',
-                        padding: '12px 20px',
-                        textAlign: 'left',
-                        color: '#dc2626',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        fontSize: '0.95rem',
-                        cursor: 'pointer',
-                        fontFamily: 'Inter, sans-serif',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Cerrar sesión
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {success && createPortal(
+        <AlertNotification type="success" message={success} onClose={() => setSuccess(null)} />,
+        document.body
+      )}
 
       {/* Main Content */}
       <div style={{
@@ -485,81 +324,21 @@ export default function MyTrips() {
           </button>
         </div>
 
-        {/* Alerts */}
-        {error && (
-          <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fca5a5',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'start',
-            gap: '12px'
-          }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: '#991b1b', fontSize: '14px', margin: 0, fontFamily: 'Inter, sans-serif' }}>
-                {error}
-              </p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#991b1b',
-                cursor: 'pointer',
-                padding: '0',
-                fontSize: '18px',
-                lineHeight: '1'
-              }}
-            >
-              X
-            </button>
-          </div>
-        )}
-
-        {success && (
-          <div style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'start',
-            gap: '12px'
-          }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: '#15803d', fontSize: '14px', margin: 0, fontFamily: 'Inter, sans-serif' }}>
-                {success}
-              </p>
-            </div>
-            <button
-              onClick={() => setSuccess(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#15803d',
-                cursor: 'pointer',
-                padding: '0',
-                fontSize: '18px',
-                lineHeight: '1'
-              }}
-            >
-              X
-            </button>
-          </div>
-        )}
-
         {/* Filter Buttons */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          marginBottom: '32px',
-          borderBottom: '1px solid #e7e5e4',
-          paddingBottom: '0'
-        }}>
+        <div 
+          className="status-filter-tabs"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '32px',
+            borderBottom: '1px solid #e7e5e4',
+            paddingBottom: '0',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 transparent'
+          }}
+        >
           {[
             { id: 'all', label: 'Todos' },
             { id: 'published', label: 'Publicados' },
@@ -571,8 +350,8 @@ export default function MyTrips() {
               key={filter.id}
               onClick={() => setStatusFilter(filter.id)}
               style={{
-                padding: '12px 24px',
-                fontSize: '1rem',
+                padding: 'clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px)',
+                fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
                 fontWeight: statusFilter === filter.id ? '500' : 'normal',
                 color: statusFilter === filter.id ? '#032567' : '#57534e',
                 backgroundColor: 'transparent',
@@ -580,7 +359,9 @@ export default function MyTrips() {
                 borderBottom: statusFilter === filter.id ? '2px solid #032567' : '2px solid transparent',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                fontFamily: 'Inter, sans-serif'
+                fontFamily: 'Inter, sans-serif',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               onMouseEnter={(e) => {
                 if (statusFilter !== filter.id) e.target.style.color = '#1c1917';
@@ -646,6 +427,7 @@ export default function MyTrips() {
             {filteredTrips.map((trip) => (
               <div
                 key={trip.id}
+                className="trip-card"
                 style={{
                   backgroundColor: 'white',
                   border: '1px solid #e7e5e4',
@@ -654,7 +436,7 @@ export default function MyTrips() {
                   transition: 'all 0.2s'
                 }}
               >
-                <div style={{
+                <div className="trip-card-content" style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'start'
@@ -687,7 +469,7 @@ export default function MyTrips() {
                     </div>
 
                     {/* Details */}
-                    <div style={{
+                    <div className="trip-details-grid" style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(4, 1fr)',
                       gap: '20px',
@@ -785,7 +567,7 @@ export default function MyTrips() {
                   </div>
 
                   {/* Actions */}
-                  <div style={{
+                  <div className="trip-card-actions" style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
@@ -793,6 +575,7 @@ export default function MyTrips() {
                   }}>
                     
                     <button
+                      className="btn-ver-detalles"
                       onClick={() => navigate(`/driver/trips/${trip.id}`)}
                       style={{
                         padding: '10px 20px',
@@ -803,18 +586,19 @@ export default function MyTrips() {
                         border: '2px solid #032567',
                         borderRadius: '25px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         fontFamily: 'Inter, sans-serif',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        whiteSpace: 'nowrap'
+                        boxShadow: '0 1px 3px rgba(3, 37, 103, 0.1)',
+                        whiteSpace: 'nowrap',
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                     >
                       Ver detalles
                     </button>
                     {trip.status === 'published' && (
                       <button
+                        className="btn-cancelar"
                         onClick={() => setTripToCancel(trip)}
                         style={{
                           padding: '10px 20px',
@@ -825,12 +609,12 @@ export default function MyTrips() {
                           border: '2px solid #dc2626',
                           borderRadius: '25px',
                           cursor: 'pointer',
-                          transition: 'all 0.2s',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                           fontFamily: 'Inter, sans-serif',
-                          whiteSpace: 'nowrap'
+                          whiteSpace: 'nowrap',
+                          position: 'relative',
+                          overflow: 'hidden'
                         }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
                       >
                         Cancelar
                       </button>
@@ -853,24 +637,27 @@ export default function MyTrips() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 50,
+            zIndex: 100,
             padding: '16px'
           }}
           onClick={() => !cancelLoading && setTripToCancel(null)}
         >
           <div
+            className="modal-content-responsive"
             style={{
-              maxWidth: '500px',
+              maxWidth: 'clamp(280px, 90vw, 500px)',
               width: '100%',
               backgroundColor: 'white',
               borderRadius: '16px',
-              padding: '32px',
-              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+              padding: 'clamp(16px, 4vw, 32px)',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{
-              fontSize: '1.8rem',
+              fontSize: 'clamp(1.2rem, 4vw, 1.8rem)',
               fontWeight: 'normal',
               color: '#1c1917',
               marginBottom: '12px',
@@ -946,12 +733,180 @@ export default function MyTrips() {
       )}
       {/* Responsive Styles */}
       <style>{`
+        /* Global modal responsive styles */
+        .modal-content-responsive {
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          /* Trip card layout - stack content vertically */
+          .trip-card-content {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px !important;
+          }
+          /* Action buttons container - full width, no left margin */
+          .trip-card-actions {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 0 !important;
+          }
+          /* Buttons - full width */
+          .trip-card-actions button,
+          .btn-ver-detalles,
+          .btn-cancelar {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+        }
+        
+        /* Button hover animations - using dark blue palette */
+        .btn-ver-detalles {
+          position: relative;
+          overflow: hidden;
+        }
+        .btn-ver-detalles::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(3, 37, 103, 0.1), transparent);
+          transition: left 0.5s ease;
+          z-index: 0;
+        }
+        .btn-ver-detalles:hover::before {
+          left: 100%;
+        }
+        .btn-ver-detalles:hover {
+          background-color: rgba(3, 37, 103, 0.05) !important;
+          border-color: #032567 !important;
+          color: #032567 !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(3, 37, 103, 0.25) !important;
+        }
+        .btn-ver-detalles:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(3, 37, 103, 0.2) !important;
+          background-color: rgba(3, 37, 103, 0.08) !important;
+        }
+        .btn-ver-detalles > * {
+          position: relative;
+          z-index: 1;
+        }
+        
+        .btn-cancelar {
+          position: relative;
+          overflow: hidden;
+        }
+        .btn-cancelar:hover {
+          background-color: #fef2f2 !important;
+          border-color: #ef4444 !important;
+          color: #ef4444 !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+        }
+        .btn-cancelar:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15) !important;
+        }
+        
+        @media (max-width: 480px) {
+          /* Trip card padding */
+          .trip-card {
+            padding: clamp(16px, 4vw, 20px) !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          /* Grid details - single column */
+          .trip-details-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+        
         @media (max-width: 768px) {
+          .modal-content-responsive h2,
+          .modal-content-responsive h3 {
+            font-size: clamp(1rem, 4vw, 1.5rem) !important;
+          }
+          .modal-content-responsive {
+            padding: clamp(12px, 3vw, 16px) !important;
+          }
           .trips-grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
           .page-header-flex {
             flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .status-filter-tabs {
+            overflow-x: auto !important;
+            gap: 8px !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: #cbd5e1 transparent !important;
+          }
+          .status-filter-tabs::-webkit-scrollbar {
+            height: 4px !important;
+          }
+          .status-filter-tabs::-webkit-scrollbar-track {
+            background: transparent !important;
+          }
+          .status-filter-tabs::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1 !important;
+            border-radius: 2px !important;
+          }
+          .status-filter-tabs button {
+            font-size: clamp(0.8rem, 2.5vw, 0.875rem) !important;
+            padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px) !important;
+            white-space: nowrap !important;
+            flex-shrink: 0 !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)) !important;
+            gap: 20px !important;
+          }
+          .page-header-flex {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
+            gap: 16px !important;
           }
         }
       `}</style>

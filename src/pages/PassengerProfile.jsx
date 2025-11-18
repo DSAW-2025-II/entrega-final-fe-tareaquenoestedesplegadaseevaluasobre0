@@ -1,3 +1,4 @@
+// Página de perfil de pasajero: página pública para ver el perfil de un pasajero
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -8,10 +9,6 @@ import Loading from '../components/common/Loading';
 import { User } from 'lucide-react';
 import { formatPhone } from '../utils/phoneFormatter';
 
-/**
- * Passenger Profile Page
- * Public page to view a passenger's profile
- */
 export default function PassengerProfile() {
   const params = useParams();
   const navigate = useNavigate();
@@ -26,10 +23,10 @@ export default function PassengerProfile() {
     console.log('[PassengerProfile] params object:', params);
     console.log('[PassengerProfile] window.location.pathname:', window.location.pathname);
     
-    // Try multiple ways to get passengerId
+    // Intentar múltiples formas de obtener passengerId
     let extractedPassengerId = params?.passengerId;
     
-    // If not in params, try to extract from URL
+    // Si no está en params, intentar extraer de la URL
     if (!extractedPassengerId) {
       const pathMatch = window.location.pathname.match(/\/passengers\/([a-f\d]{24})/i);
       extractedPassengerId = pathMatch ? pathMatch[1] : null;
@@ -44,13 +41,14 @@ export default function PassengerProfile() {
       return;
     }
     
-    // Store passengerId in state
+    // Almacenar passengerId en estado
     setPassengerId(extractedPassengerId);
     
-    // Load data with the extracted passengerId
+    // Cargar datos con el passengerId extraído
     loadPassengerData(extractedPassengerId);
   }, [params]);
 
+  // Cargar datos del perfil público del pasajero
   const loadPassengerData = async (idToUse = null) => {
     const finalPassengerId = idToUse || passengerId;
     
@@ -167,6 +165,8 @@ export default function PassengerProfile() {
           <div style={{
             width: 'clamp(80px, 15vw, 120px)',
             height: 'clamp(80px, 15vw, 120px)',
+            minWidth: 'clamp(80px, 15vw, 120px)',
+            minHeight: 'clamp(80px, 15vw, 120px)',
             borderRadius: '50%',
             backgroundColor: '#032567',
             display: 'flex',
@@ -177,7 +177,8 @@ export default function PassengerProfile() {
             fontWeight: '600',
             fontFamily: 'Inter, sans-serif',
             overflow: 'hidden',
-            flexShrink: 0
+            flexShrink: 0,
+            aspectRatio: '1 / 1'
           }}>
             {passengerInfo?.profilePhotoUrl ? (
               <img
@@ -186,7 +187,10 @@ export default function PassengerProfile() {
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover'
+                  objectFit: 'cover',
+                  borderRadius: '50%',
+                  aspectRatio: '1 / 1',
+                  display: 'block'
                 }}
               />
             ) : (
@@ -309,6 +313,59 @@ export default function PassengerProfile() {
           </div>
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .profile-header-flex {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 16px !important;
+          }
+          .profile-photo {
+            width: 120px !important;
+            height: 120px !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .profile-header-flex {
+            flex-direction: row !important;
+            align-items: center !important;
+            text-align: left !important;
+            gap: 24px !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .profile-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .profile-header-flex {
+            gap: 16px !important;
+          }
+          .profile-photo {
+            width: 100px !important;
+            height: 100px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

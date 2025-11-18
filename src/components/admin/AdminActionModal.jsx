@@ -1,10 +1,13 @@
+// Modal genérico de acción admin: solicita razón para acciones administrativas (suspender, reactivar, cancelar viaje, etc.)
 import { useState } from 'react';
 
 export default function AdminActionModal({ title, actionLabel = 'Confirm', onCancel, onConfirm }) {
+  // Estado para razón de acción, envío y errores
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Manejar envío del formulario: valida razón mínima de 5 caracteres
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);

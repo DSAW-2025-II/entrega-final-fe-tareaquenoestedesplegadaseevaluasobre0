@@ -1,35 +1,30 @@
+// Componente RoleSwitch: interruptor para cambiar entre roles de pasajero y conductor
+// Solo se muestra cuando el usuario tiene vehículo registrado (puede cambiar entre roles)
 import { useState } from 'react';
 import { toggleRole } from '../../api/user';
 import useAuthStore from '../../store/authStore';
 import Toast from './Toast';
 
-/**
- * RoleSwitch Component - Toggle switch for switching between passenger and driver roles
- * Only shows when user has vehicle registered (can switch between roles)
- * 
- * @param {Object} props
- * @param {boolean} props.hasVehicle - Whether user has a vehicle registered
- * @param {string} props.currentRole - Current role ('passenger' | 'driver')
- */
 export default function RoleSwitch({ hasVehicle, currentRole }) {
   const { setUser } = useAuthStore();
   const [changing, setChanging] = useState(false);
   const [toast, setToast] = useState(null);
-  const [animatingRole, setAnimatingRole] = useState(null); // Track role during animation
+  const [animatingRole, setAnimatingRole] = useState(null); // Rastrear rol durante animación
 
-  // Only show switch if user has vehicle (can switch between roles)
+  // Solo mostrar interruptor si el usuario tiene vehículo (puede cambiar entre roles)
   if (!hasVehicle) {
     return null;
   }
 
   const isDriver = currentRole === 'driver';
-  // Use animatingRole if animation is in progress, otherwise use actual role
+  // Usar animatingRole si la animación está en progreso, de lo contrario usar rol real
   const displayRole = animatingRole !== null ? animatingRole : isDriver;
 
+  // Manejar cambio de rol
   const handleToggle = async () => {
     if (changing) return;
 
-    // Start animation immediately by setting the target role
+    // Iniciar animación inmediatamente estableciendo el rol objetivo
     const targetRole = !isDriver;
     setAnimatingRole(targetRole);
     setChanging(true);
@@ -44,10 +39,10 @@ export default function RoleSwitch({ hasVehicle, currentRole }) {
         type: 'success'
       });
 
-      // Reload page after animation completes to ensure all components update
+      // Recargar página después de que la animación complete para asegurar que todos los componentes se actualicen
       setTimeout(() => {
         window.location.reload();
-      }, 600); // Wait for animation to complete (400ms + buffer)
+      }, 600); // Esperar a que la animación complete (400ms + buffer)
     } catch (err) {
       console.error('[RoleSwitch] Toggle role error:', err);
       // Reset animation on error

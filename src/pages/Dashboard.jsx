@@ -1,29 +1,22 @@
+// Dashboard: página principal para usuarios autenticados
+// Muestra contenido diferente según el rol (pasajero vs conductor)
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { getCurrentUser } from '../api/auth';
-import { getImageUrl } from '../utils/imageUrl';
 import { searchTrips } from '../api/trip';
 import { getMyTripOffers } from '../api/tripOffer';
-import RoleSwitch from '../components/common/RoleSwitch';
-import logo from '../assets/images/UniSabana Logo.png';
-import NotificationBell from '../components/notifications/NotificationBell';
+import Navbar from '../components/common/Navbar';
 
-/**
- * Dashboard - Main landing page for authenticated users
- * Shows different content based on role (passenger vs driver)
- */
 export default function Dashboard() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState({ items: [], total: 0 });
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [profile, setProfile] = useState(null);
   
-  // Search filters (for passengers)
+  // Filtros de búsqueda (para pasajeros)
   const [searchFilters, setSearchFilters] = useState({
     qOrigin: '',
     qDestination: '',
@@ -31,7 +24,7 @@ export default function Dashboard() {
 
   const isDriver = user?.role === 'driver';
 
-  // Load profile to check if user has vehicle (for role switch)
+  // Cargar perfil para verificar si el usuario tiene vehículo (para cambio de rol)
   useEffect(() => {
     const loadProfile = async () => {
       if (user && !profile) {
@@ -39,30 +32,31 @@ export default function Dashboard() {
           const fullProfile = await getCurrentUser();
           setProfile(fullProfile);
         } catch (err) {
-          // Silently fail
+          // Fallar silenciosamente
         }
       }
     };
     loadProfile();
   }, [user?.id]);
 
+  // Cargar datos del dashboard según el rol
   const loadDashboardData = async () => {
     setLoading(true);
     setError(null);
 
     try {
       if (isDriver) {
-        // Load driver's trip offers (limit to 6 most recent)
+        // Cargar ofertas de viaje del conductor (limitar a 6 más recientes)
         const result = await getMyTripOffers({ page: 1, pageSize: 6 });
         setData(result);
       } else {
-        // Load available trips for passengers (limit to 6 most recent)
+        // Cargar viajes disponibles para pasajeros (limitar a 6 más recientes)
         const filters = {
           page: 1,
           pageSize: 6,
         };
         
-        // Add search filters if provided
+        // Agregar filtros de búsqueda si se proporcionaron
         if (searchFilters.qOrigin?.trim()) {
           filters.qOrigin = searchFilters.qOrigin.trim();
         }
@@ -86,26 +80,6 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role, searchFilters.qOrigin, searchFilters.qDestination]);
 
-  // Close profile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProfileMenu && !event.target.closest('.profile-menu-container')) {
-        setShowProfileMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfileMenu]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (err) {
-      console.error('[Dashboard] Logout error:', err);
-    }
-  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -152,377 +126,15 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
       {/* Navbar */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: 'clamp(12px, 2vw, 16px) clamp(16px, 3vw, 24px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px'
-        }}>
-          {/* Left: Logo + Text */}
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'clamp(6px, 2vw, 12px)',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s',
-              flex: '0 1 auto',
-              minWidth: 0
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: 'clamp(2.5rem, 8vw, 4rem)', 
-                width: 'auto',
-                objectFit: 'contain',
-                flexShrink: 0
-              }}
-            />
-            <span className="dashboard-logo-text" style={{
-              fontSize: 'clamp(14px, 3.5vw, 20px)',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
-
-          {/* Center: Navigation Links */}
-          <nav className="dashboard-nav" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'clamp(12px, 3vw, 32px)'
-          }}>
-            <Link
-              to="/my-trips"
-              style={{
-                fontSize: 'clamp(0.85rem, 2vw, 1rem)',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Mis viajes
-            </Link>
-            
-            <Link
-              to="/reports"
-              className="hide-on-mobile"
-              style={{
-                fontSize: 'clamp(0.85rem, 2vw, 1rem)',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Reportes
-            </Link>
-            
-            {/* Only show "Buscar" for passengers */}
-            {!isDriver && (
-              <Link
-                to="/search"
-                style={{
-                  fontSize: 'clamp(0.85rem, 2vw, 1rem)',
-                  fontWeight: '500',
-                  color: '#1c1917',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s',
-                  fontFamily: 'Inter, sans-serif',
-                  whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => e.target.style.color = '#032567'}
-                onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-              >
-                Buscar
-              </Link>
-            )}
-          </nav>
-
-          {/* Right: Notifications + Role Status + Profile */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Notifications */}
-            {user && (
-              <NotificationBell />
-            )}
-            
-                {/* Role Switch - Only shows if user has vehicle (can switch roles) */}
-                {profile?.driver?.hasVehicle ? (
-                  <RoleSwitch 
-                    hasVehicle={profile.driver.hasVehicle} 
-                    currentRole={user?.role || 'passenger'} 
-                  />
-                ) : (
-                  <div style={{
-                    padding: '6px 16px',
-                    backgroundColor: isDriver ? '#032567' : 'white',
-                    color: isDriver ? 'white' : '#032567',
-                    border: '2px solid #032567',
-                    borderRadius: '20px',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    fontFamily: 'Inter, sans-serif'
-                  }}>
-                    {isDriver ? 'Conductor' : 'Pasajero'}
-                  </div>
-                )}
-
-            {/* Profile button with menu */}
-            <div className="profile-menu-container" style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{
-                  height: '3rem',
-                  width: '3rem',
-                  borderRadius: '50%',
-                  backgroundColor: '#032567',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontFamily: 'Inter, sans-serif',
-                  overflow: 'hidden',
-                  padding: 0
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                title={`${user?.firstName} ${user?.lastName}`}
-              >
-                {user?.profilePhotoUrl && !imageError ? (
-                  <img
-                    src={`${getImageUrl(user.profilePhotoUrl)}?t=${user.updatedAt || Date.now()}`}
-                    alt={`${user?.firstName} ${user?.lastName}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '50%'
-                    }}
-                    onError={() => setImageError(true)}
-                    onLoad={() => setImageError(false)}
-                  />
-                ) : (
-                  <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
-                )}
-              </button>
-
-              {/* Dropdown menu */}
-              {showProfileMenu && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  marginTop: '8px',
-                  width: '220px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  border: '1px solid #e7e5e4',
-                  padding: '8px 0',
-                  zIndex: 20
-                }}>
-                  {/* User info */}
-                  <div style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #e7e5e4',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}>
-                    {/* Profile photo in menu */}
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      backgroundColor: '#032567',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      flexShrink: 0,
-                      overflow: 'hidden'
-                    }}>
-                      {user?.profilePhotoUrl && !imageError ? (
-                        <img
-                          src={`${getImageUrl(user.profilePhotoUrl)}?t=${user.updatedAt || Date.now()}`}
-                          alt={`${user?.firstName} ${user?.lastName}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                          onError={() => setImageError(true)}
-                          onLoad={() => setImageError(false)}
-                        />
-                      ) : (
-                        <span>{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: '#1c1917',
-                        margin: 0,
-                        fontFamily: 'Inter, sans-serif',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p style={{
-                        fontSize: '0.75rem',
-                        color: '#57534e',
-                        margin: '4px 0 0 0',
-                        fontFamily: 'Inter, sans-serif',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {user?.corporateEmail}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Menu items */}
-                  <div style={{ padding: '4px 0' }}>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/profile');
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        textAlign: 'left',
-                        fontSize: '0.9rem',
-                        color: '#1c1917',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        fontFamily: 'Inter, sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Mi perfil
-                    </button>
-
-                    {isDriver && (
-                      <button
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          navigate('/driver/my-vehicle');
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          fontSize: '0.9rem',
-                          color: '#1c1917',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s',
-                          fontFamily: 'Inter, sans-serif',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        Mi vehículo
-                      </button>
-                    )}
-
-                  </div>
-
-                  {/* Logout */}
-                  <div style={{
-                    borderTop: '1px solid #e7e5e4',
-                    paddingTop: '4px'
-                  }}>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        textAlign: 'left',
-                        fontSize: '0.9rem',
-                        color: '#dc2626',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        fontFamily: 'Inter, sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Cerrar sesión
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <div style={{
         maxWidth: '1280px',
+        width: '100%',
         margin: '0 auto',
-        padding: 'clamp(24px, 5vw, 48px) clamp(16px, 3vw, 24px)'
+        padding: 'clamp(16px, 4vw, 48px) clamp(12px, 3vw, 24px)',
+        boxSizing: 'border-box'
       }}>
         {/* Hero / Welcome Section */}
         <div style={{ marginBottom: 'clamp(24px, 5vw, 48px)' }}>
@@ -862,13 +474,70 @@ export default function Dashboard() {
 
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .dashboard-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: flex !important;
+          }
           .trips-grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
           .section-header-flex {
             flex-direction: column !important;
             align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .dashboard-logo-text {
+            display: none !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) and Tablet - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .dashboard-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: flex !important;
+          }
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)) !important;
+            gap: 20px !important;
+          }
+        }
+        
+        /* Tablet Landscape - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) !important;
+          }
+        }
+        
+        /* Desktop - 769px and above */
+        @media (min-width: 769px) {
+          .mobile-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: none !important;
+          }
+        }
+        
+        /* Small Desktop - 1025px to 1280px */
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .trips-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
           }
         }
       `}</style>

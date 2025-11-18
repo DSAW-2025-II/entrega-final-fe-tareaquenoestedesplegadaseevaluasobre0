@@ -1,12 +1,11 @@
+// Página de mi vehículo: muestra detalles del vehículo del conductor y permite cambiarlo
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { getMyVehicle, deleteMyVehicle } from '../../api/vehicle';
-import useAuthStore from '../../store/authStore';
+import { useNavigate } from 'react-router-dom';
+import { getMyVehicle } from '../../api/vehicle';
 import { getCurrentUser } from '../../api/auth';
-import RoleSwitch from '../../components/common/RoleSwitch';
-// Components removed - using inline styles instead
-import NotificationBell from '../../components/notifications/NotificationBell';
-import logo from '../../assets/images/UniSabana Logo.png';
+import { getImageUrl } from '../../utils/imageUrl';
+import useAuthStore from '../../store/authStore';
+import Navbar from '../../components/common/Navbar';
 
 export default function MyVehicle() {
   const navigate = useNavigate();
@@ -15,14 +14,10 @@ export default function MyVehicle() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [profile, setProfile] = useState(null);
 
-  // Form no longer needed since we're not editing
-
-  // Load profile to check if user has vehicle (for role switch)
+  // Cargar perfil para verificar si el usuario tiene vehículo (para cambio de rol)
   useEffect(() => {
     const loadProfile = async () => {
       if (user && !profile) {
@@ -30,20 +25,20 @@ export default function MyVehicle() {
           const fullProfile = await getCurrentUser();
           setProfile(fullProfile);
         } catch (err) {
-          // Silently fail
+          // Fallar silenciosamente
         }
       }
     };
     loadProfile();
   }, [user?.id]);
 
-  // Load vehicle data
+  // Cargar datos del vehículo
   useEffect(() => {
     loadVehicle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close profile menu when clicking outside
+  // Cerrar menú de perfil al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showProfileMenu && !event.target.closest('.profile-menu-container')) {
@@ -55,19 +50,7 @@ export default function MyVehicle() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileMenu]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (err) {
-      console.error('[MyVehicle] Logout error:', err);
-    }
-  };
-
-  const getInitials = (firstName, lastName) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
-  };
-
+  // Cargar vehículo del conductor
   const loadVehicle = async () => {
     try {
       setLoading(true);
@@ -84,30 +67,6 @@ export default function MyVehicle() {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Edit functionality removed - vehicles cannot be edited, only deleted
-
-  const handleDelete = async () => {
-    setDeleteLoading(true);
-    setError(null);
-
-    try {
-      await deleteMyVehicle();
-      setSuccess('Vehículo eliminado correctamente');
-      setShowDeleteModal(false);
-      
-      // Redirect after a short delay
-      setTimeout(() => {
-        navigate('/profile');
-      }, 1500);
-    } catch (err) {
-      console.error('[MyVehicle] Delete error:', err);
-      setError('Error al eliminar el vehículo: ' + (err.message || 'Error desconocido'));
-      setShowDeleteModal(false);
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -140,269 +99,7 @@ export default function MyVehicle() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
         {/* Navbar */}
-        <header style={{
-          width: '100%',
-          borderBottom: '1px solid #e7e5e4',
-          backgroundColor: 'white',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          <div style={{
-            maxWidth: '1280px',
-            margin: '0 auto',
-            padding: '16px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <Link 
-              to="/dashboard" 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                textDecoration: 'none',
-                transition: 'opacity 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              <img 
-                src={logo} 
-                alt="Wheels UniSabana Logo" 
-                style={{ 
-                  height: '4rem', 
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-              <span style={{
-                fontSize: '20px',
-                fontWeight: 'normal',
-                color: '#1c1917',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                Wheels UniSabana
-              </span>
-            </Link>
-
-            {/* Center: Navigation Links */}
-            <nav style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '32px'
-            }}>
-              <Link
-                to="/my-trips"
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: '500',
-                  color: '#1c1917',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s',
-                  fontFamily: 'Inter, sans-serif'
-                }}
-                onMouseEnter={(e) => e.target.style.color = '#032567'}
-                onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-              >
-                Mis viajes
-              </Link>
-              
-              <Link
-                to="/reports"
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: '500',
-                  color: '#1c1917',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s',
-                  fontFamily: 'Inter, sans-serif'
-                }}
-                onMouseEnter={(e) => e.target.style.color = '#032567'}
-                onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-              >
-                Reportes
-              </Link>
-            </nav>
-
-            {/* Right: Notifications + Role Status + Profile */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              {/* Notifications */}
-              {user && (
-                <NotificationBell />
-              )}
-
-              {/* Role Switch - Only shows if user has vehicle (can switch roles) */}
-              {profile?.driver?.hasVehicle ? (
-                <RoleSwitch 
-                  hasVehicle={profile.driver.hasVehicle} 
-                  currentRole={user?.role || 'driver'} 
-                />
-              ) : (
-                <div style={{
-                  padding: '6px 16px',
-                  backgroundColor: '#032567',
-                  color: 'white',
-                  border: '2px solid #032567',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: '500',
-                  fontFamily: 'Inter, sans-serif'
-                }}>
-                  Conductor
-                </div>
-              )}
-
-              {/* Profile button with menu */}
-              <div className="profile-menu-container" style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  style={{
-                    width: '45px',
-                    height: '45px',
-                    borderRadius: '50%',
-                    backgroundColor: '#032567',
-                    border: 'none',
-                    color: 'white',
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontFamily: 'Inter, sans-serif',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }}
-                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                >
-                  {getInitials(user?.firstName, user?.lastName)}
-                </button>
-
-                {showProfileMenu && (
-                  <>
-                    <div
-                      style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 10
-                      }}
-                      onClick={() => setShowProfileMenu(false)}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      right: 0,
-                      marginTop: '8px',
-                      width: '220px',
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      border: '1px solid #e7e5e4',
-                      padding: '8px 0',
-                      zIndex: 20
-                    }}>
-                      {/* User info */}
-                      <div style={{
-                        padding: '12px 16px',
-                        borderBottom: '1px solid #e7e5e4'
-                      }}>
-                        <p style={{
-                          fontSize: '0.9rem',
-                          fontWeight: '600',
-                          color: '#1c1917',
-                          margin: 0,
-                          fontFamily: 'Inter, sans-serif'
-                        }}>
-                          {user?.firstName} {user?.lastName}
-                        </p>
-                        <p style={{
-                          fontSize: '0.75rem',
-                          color: '#57534e',
-                          margin: '4px 0 0 0',
-                          fontFamily: 'Inter, sans-serif'
-                        }}>
-                          {user?.corporateEmail}
-                        </p>
-                      </div>
-
-                      {/* Menu items */}
-                      <div style={{ padding: '4px 0' }}>
-                        <button
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            navigate('/profile');
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px',
-                            textAlign: 'left',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#1c1917',
-                            fontSize: '0.9rem',
-                            cursor: 'pointer',
-                            fontFamily: 'Inter, sans-serif',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                        >
-                          Mi perfil
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            navigate('/driver/my-vehicle');
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px',
-                            textAlign: 'left',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#1c1917',
-                            fontSize: '0.9rem',
-                            cursor: 'pointer',
-                            fontFamily: 'Inter, sans-serif',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                        >
-                          Mi vehículo
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px',
-                            textAlign: 'left',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#dc2626',
-                            fontSize: '0.9rem',
-                            cursor: 'pointer',
-                            fontFamily: 'Inter, sans-serif',
-                            transition: 'background-color 0.2s',
-                            borderTop: '1px solid #e7e5e4',
-                            marginTop: '4px'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                        >
-                          Cerrar sesión
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        <Navbar />
 
         <div style={{
           maxWidth: '1280px',
@@ -417,7 +114,7 @@ export default function MyVehicle() {
             textAlign: 'center'
           }}>
             <h2 style={{
-              fontSize: '1.8rem',
+              fontSize: 'clamp(1.5rem, 4vw, 1.8rem)',
               fontWeight: 'normal',
               color: '#1c1917',
               marginBottom: '8px',
@@ -428,7 +125,7 @@ export default function MyVehicle() {
             <p style={{
               color: '#57534e',
               marginBottom: '24px',
-              fontSize: '1rem',
+              fontSize: 'clamp(0.9rem, 2vw, 1rem)',
               fontFamily: 'Inter, sans-serif'
             }}>
               Registra tu vehículo para poder publicar viajes
@@ -436,8 +133,8 @@ export default function MyVehicle() {
             <button
               onClick={() => navigate('/driver/register-vehicle')}
               style={{
-                padding: '12px 24px',
-                fontSize: '1rem',
+                padding: 'clamp(10px, 2vw, 12px) clamp(20px, 4vw, 24px)',
+                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                 fontWeight: 'normal',
                 color: 'white',
                 backgroundColor: '#032567',
@@ -462,263 +159,7 @@ export default function MyVehicle() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
       {/* Navbar */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
-
-          {/* Center: Navigation Links */}
-          <nav style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '32px'
-          }}>
-            <Link
-              to="/my-trips"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Mis viajes
-            </Link>
-            
-            <Link
-              to="/reports"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Reportes
-            </Link>
-          </nav>
-
-          {/* Right: Notifications + Role Status + Profile */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Notifications */}
-            {user && (
-              <NotificationBell />
-            )}
-
-            {/* Role indicator */}
-            <div style={{
-              padding: '6px 16px',
-              backgroundColor: '#032567',
-              color: 'white',
-              border: '2px solid #032567',
-              borderRadius: '20px',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Conductor
-            </div>
-
-            {/* Profile button with menu */}
-            <div className="profile-menu-container" style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{
-                  width: '45px',
-                  height: '45px',
-                  borderRadius: '50%',
-                  backgroundColor: '#032567',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontFamily: 'Inter, sans-serif',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                {getInitials(user?.firstName, user?.lastName)}
-              </button>
-
-              {showProfileMenu && (
-                <>
-                  <div
-                    style={{
-                      position: 'fixed',
-                      inset: 0,
-                      zIndex: 10
-                    }}
-                    onClick={() => setShowProfileMenu(false)}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    marginTop: '8px',
-                    width: '220px',
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    border: '1px solid #e7e5e4',
-                    padding: '8px 0',
-                    zIndex: 20
-                  }}>
-                    {/* User info */}
-                    <div style={{
-                      padding: '12px 16px',
-                      borderBottom: '1px solid #e7e5e4'
-                    }}>
-                      <p style={{
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: '#1c1917',
-                        margin: 0,
-                        fontFamily: 'Inter, sans-serif'
-                      }}>
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p style={{
-                        fontSize: '0.75rem',
-                        color: '#57534e',
-                        margin: '4px 0 0 0',
-                        fontFamily: 'Inter, sans-serif'
-                      }}>
-                        {user?.corporateEmail}
-                      </p>
-                    </div>
-
-                    {/* Menu items */}
-                    <div style={{ padding: '4px 0' }}>
-                      <button
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          navigate('/profile');
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: '#1c1917',
-                          fontSize: '0.9rem',
-                          cursor: 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        Mi perfil
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          navigate('/driver/my-vehicle');
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          backgroundColor: '#f0f9ff',
-                          border: 'none',
-                          color: '#032567',
-                          fontSize: '0.9rem',
-                          cursor: 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          transition: 'background-color 0.2s',
-                          fontWeight: '600'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#e0f2fe'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f9ff'}
-                      >
-                        Mi vehículo
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          color: '#dc2626',
-                          fontSize: '0.9rem',
-                          cursor: 'pointer',
-                          fontFamily: 'Inter, sans-serif',
-                          transition: 'background-color 0.2s',
-                          borderTop: '1px solid #e7e5e4',
-                          marginTop: '4px'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        Cerrar sesión
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Content */}
       <div style={{
@@ -731,7 +172,7 @@ export default function MyVehicle() {
           fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
           fontWeight: 'normal',
           color: '#1c1917',
-          marginBottom: '32px',
+          marginBottom: 'clamp(24px, 4vw, 32px)',
           fontFamily: 'Inter, sans-serif'
         }}>
           Mi Vehículo
@@ -743,14 +184,14 @@ export default function MyVehicle() {
             backgroundColor: '#fef2f2',
             border: '1px solid #fca5a5',
             borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
+            padding: 'clamp(12px, 2vw, 16px)',
+            marginBottom: 'clamp(16px, 3vw, 24px)',
             display: 'flex',
             alignItems: 'start',
-            gap: '12px'
+            gap: 'clamp(8px, 1.5vw, 12px)'
           }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#991b1b', fontSize: '14px', margin: 0, fontFamily: 'Inter, sans-serif' }}>
+              <p style={{ color: '#991b1b', fontSize: 'clamp(0.85rem, 1.5vw, 0.875rem)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
                 {error}
               </p>
             </div>
@@ -762,7 +203,7 @@ export default function MyVehicle() {
                 color: '#991b1b',
                 cursor: 'pointer',
                 padding: '0',
-                fontSize: '18px',
+                fontSize: 'clamp(16px, 2vw, 18px)',
                 lineHeight: '1'
               }}
             >
@@ -775,14 +216,14 @@ export default function MyVehicle() {
             backgroundColor: '#f0fdf4',
             border: '1px solid #86efac',
             borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
+            padding: 'clamp(12px, 2vw, 16px)',
+            marginBottom: 'clamp(16px, 3vw, 24px)',
             display: 'flex',
             alignItems: 'start',
-            gap: '12px'
+            gap: 'clamp(8px, 1.5vw, 12px)'
           }}>
             <div style={{ flex: 1 }}>
-              <p style={{ color: '#15803d', fontSize: '14px', margin: 0, fontFamily: 'Inter, sans-serif' }}>
+              <p style={{ color: '#15803d', fontSize: 'clamp(0.85rem, 1.5vw, 0.875rem)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
                 {success}
               </p>
             </div>
@@ -794,7 +235,7 @@ export default function MyVehicle() {
                 color: '#15803d',
                 cursor: 'pointer',
                 padding: '0',
-                fontSize: '18px',
+                fontSize: 'clamp(16px, 2vw, 18px)',
                 lineHeight: '1'
               }}
             >
@@ -808,23 +249,23 @@ export default function MyVehicle() {
           backgroundColor: 'white',
           borderRadius: '16px',
           border: '1px solid #e7e5e4',
-          padding: '32px'
+          padding: 'clamp(16px, 4vw, 32px)'
         }}>
           {/* Vehicle Photos */}
-          <div style={{
+          <div className="vehicle-photo-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
-            gap: '24px',
-            marginBottom: '32px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gap: 'clamp(16px, 3vw, 24px)',
+            marginBottom: 'clamp(24px, 4vw, 32px)'
           }}>
             {/* Vehicle Photo */}
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.9rem',
+                fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                 fontWeight: '500',
                 color: '#57534e',
-                marginBottom: '8px',
+                marginBottom: 'clamp(6px, 1vw, 8px)',
                 fontFamily: 'Inter, sans-serif'
               }}>
                 Foto del vehículo
@@ -849,7 +290,7 @@ export default function MyVehicle() {
                 }}>
                   {vehicle?.vehiclePhotoUrl ? (
                     <img 
-                      src={vehicle.vehiclePhotoUrl} 
+                      src={getImageUrl(vehicle.vehiclePhotoUrl)} 
                       alt="Vehicle" 
                       style={{
                         width: '100%',
@@ -866,7 +307,7 @@ export default function MyVehicle() {
                       height: '100%'
                     }}>
                       <p style={{
-                        fontSize: '0.85rem',
+                        fontSize: 'clamp(0.8rem, 1.5vw, 0.85rem)',
                         color: '#78716c',
                         fontFamily: 'Inter, sans-serif'
                       }}>Sin foto</p>
@@ -880,10 +321,10 @@ export default function MyVehicle() {
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.9rem',
+                fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                 fontWeight: '500',
                 color: '#57534e',
-                marginBottom: '8px',
+                marginBottom: 'clamp(6px, 1vw, 8px)',
                 fontFamily: 'Inter, sans-serif'
               }}>
                 Foto del SOAT
@@ -908,7 +349,7 @@ export default function MyVehicle() {
                 }}>
                   {vehicle?.soatPhotoUrl ? (
                     <img 
-                      src={vehicle.soatPhotoUrl} 
+                      src={getImageUrl(vehicle.soatPhotoUrl)} 
                       alt="SOAT" 
                       style={{
                         width: '100%',
@@ -925,7 +366,7 @@ export default function MyVehicle() {
                       height: '100%'
                     }}>
                       <p style={{
-                        fontSize: '0.85rem',
+                        fontSize: 'clamp(0.8rem, 1.5vw, 0.85rem)',
                         color: '#78716c',
                         fontFamily: 'Inter, sans-serif'
                       }}>Sin foto</p>
@@ -937,15 +378,15 @@ export default function MyVehicle() {
           </div>
 
           {/* Vehicle Information - Read Only */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(16px, 2.5vw, 20px)' }}>
             {/* Plate */}
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.9rem',
+                fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                 fontWeight: '500',
                 color: '#57534e',
-                marginBottom: '6px',
+                marginBottom: 'clamp(4px, 1vw, 6px)',
                 fontFamily: 'Inter, sans-serif'
               }}>
                 Placa del vehículo
@@ -956,10 +397,10 @@ export default function MyVehicle() {
                 disabled
                 style={{
                   width: '100%',
-                  padding: '10px 16px',
+                  padding: 'clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px)',
                   borderRadius: '12px',
                   border: '1px solid #e7e5e4',
-                  fontSize: '1rem',
+                  fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                   color: '#57534e',
                   backgroundColor: '#f5f5f4',
                   fontFamily: 'Inter, sans-serif',
@@ -969,18 +410,18 @@ export default function MyVehicle() {
             </div>
 
             {/* Brand and Model */}
-            <div style={{
+            <div className="form-grid-2cols" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-              gap: '16px'
+              gap: 'clamp(12px, 2vw, 16px)'
             }}>
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '0.9rem',
+                  fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                   fontWeight: '500',
                   color: '#57534e',
-                  marginBottom: '6px',
+                  marginBottom: 'clamp(4px, 1vw, 6px)',
                   fontFamily: 'Inter, sans-serif'
                 }}>
                   Marca
@@ -991,10 +432,10 @@ export default function MyVehicle() {
                   disabled
                   style={{
                     width: '100%',
-                    padding: '10px 16px',
+                    padding: 'clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px)',
                     borderRadius: '12px',
                     border: '1px solid #e7e5e4',
-                    fontSize: '1rem',
+                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                     color: '#57534e',
                     backgroundColor: '#f5f5f4',
                     fontFamily: 'Inter, sans-serif',
@@ -1006,10 +447,10 @@ export default function MyVehicle() {
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '0.9rem',
+                  fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                   fontWeight: '500',
                   color: '#57534e',
-                  marginBottom: '6px',
+                  marginBottom: 'clamp(4px, 1vw, 6px)',
                   fontFamily: 'Inter, sans-serif'
                 }}>
                   Modelo
@@ -1020,10 +461,10 @@ export default function MyVehicle() {
                   disabled
                   style={{
                     width: '100%',
-                    padding: '10px 16px',
+                    padding: 'clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px)',
                     borderRadius: '12px',
                     border: '1px solid #e7e5e4',
-                    fontSize: '1rem',
+                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                     color: '#57534e',
                     backgroundColor: '#f5f5f4',
                     fontFamily: 'Inter, sans-serif',
@@ -1037,10 +478,10 @@ export default function MyVehicle() {
             <div>
               <label style={{
                 display: 'block',
-                fontSize: '0.9rem',
+                fontSize: 'clamp(0.85rem, 1.5vw, 0.9rem)',
                 fontWeight: '500',
                 color: '#57534e',
-                marginBottom: '6px',
+                marginBottom: 'clamp(4px, 1vw, 6px)',
                 fontFamily: 'Inter, sans-serif'
               }}>
                 Capacidad de pasajeros
@@ -1051,10 +492,10 @@ export default function MyVehicle() {
                 disabled
                 style={{
                   width: '100%',
-                  padding: '10px 16px',
+                  padding: 'clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px)',
                   borderRadius: '12px',
                   border: '1px solid #e7e5e4',
-                  fontSize: '1rem',
+                  fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                   color: '#57534e',
                   backgroundColor: '#f5f5f4',
                   fontFamily: 'Inter, sans-serif',
@@ -1063,270 +504,166 @@ export default function MyVehicle() {
               />
             </div>
 
-              {/* Metadata */}
-              {vehicle && (
-                <div style={{
-                  borderTop: '1px solid #e7e5e4',
-                  paddingTop: '20px',
-                  marginTop: '20px'
+            {/* Metadata */}
+            {vehicle && (
+              <div style={{
+                borderTop: '1px solid #e7e5e4',
+                paddingTop: 'clamp(16px, 2.5vw, 20px)',
+                marginTop: 'clamp(16px, 2.5vw, 20px)'
+              }}>
+                <div className="form-grid-2cols" style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+                  gap: 'clamp(12px, 2vw, 16px)'
                 }}>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-                    gap: '16px'
-                  }}>
-                    <div>
-                      <p style={{
-                        fontSize: '0.85rem',
-                        color: '#57534e',
-                        margin: '0 0 4px 0',
-                        fontFamily: 'Inter, sans-serif'
-                      }}>Registrado el:</p>
-                      <p style={{
-                        fontSize: '0.95rem',
-                        fontWeight: '500',
-                        color: '#1c1917',
-                        margin: 0,
-                        fontFamily: 'Inter, sans-serif'
-                      }}>
-                        {new Date(vehicle.createdAt).toLocaleDateString('es-CO', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p style={{
-                        fontSize: '0.85rem',
-                        color: '#57534e',
-                        margin: '0 0 4px 0',
-                        fontFamily: 'Inter, sans-serif'
-                      }}>Última actualización:</p>
-                      <p style={{
-                        fontSize: '0.95rem',
-                        fontWeight: '500',
-                        color: '#1c1917',
-                        margin: 0,
-                        fontFamily: 'Inter, sans-serif'
-                      }}>
-                        {new Date(vehicle.updatedAt).toLocaleDateString('es-CO', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                    </div>
+                  <div>
+                    <p style={{
+                      fontSize: 'clamp(0.8rem, 1.5vw, 0.85rem)',
+                      color: '#57534e',
+                      margin: '0 0 clamp(4px, 1vw, 4px) 0',
+                      fontFamily: 'Inter, sans-serif'
+                    }}>Registrado el:</p>
+                    <p style={{
+                      fontSize: 'clamp(0.9rem, 2vw, 0.95rem)',
+                      fontWeight: '500',
+                      color: '#1c1917',
+                      margin: 0,
+                      fontFamily: 'Inter, sans-serif'
+                    }}>
+                      {new Date(vehicle.createdAt).toLocaleDateString('es-CO', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{
+                      fontSize: 'clamp(0.8rem, 1.5vw, 0.85rem)',
+                      color: '#57534e',
+                      margin: '0 0 clamp(4px, 1vw, 4px) 0',
+                      fontFamily: 'Inter, sans-serif'
+                    }}>Última actualización:</p>
+                    <p style={{
+                      fontSize: 'clamp(0.9rem, 2vw, 0.95rem)',
+                      fontWeight: '500',
+                      color: '#1c1917',
+                      margin: 0,
+                      fontFamily: 'Inter, sans-serif'
+                    }}>
+                      {new Date(vehicle.updatedAt).toLocaleDateString('es-CO', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
                   </div>
                 </div>
-              )}
-
-              {/* Action button */}
-              <div style={{
-                paddingTop: '16px'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 24px',
-                    fontSize: '1rem',
-                    fontWeight: 'normal',
-                    color: '#dc2626',
-                    backgroundColor: 'white',
-                    border: '2px solid #dc2626',
-                    borderRadius: '25px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    fontFamily: 'Inter, sans-serif'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#fef2f2';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'white';
-                  }}
-                >
-                  Eliminar vehículo
-                </button>
               </div>
-            </div>
-        </div>
+            )}
 
-        {/* Delete Modal */}
-        {showDeleteModal && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 50,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(4px)'
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget && !deleteLoading) {
-                setShowDeleteModal(false);
-              }
-            }}
-          >
+            {/* Action button */}
             <div style={{
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              maxWidth: '500px',
-              width: '100%',
-              padding: '24px'
+              paddingTop: 'clamp(12px, 2vw, 16px)'
             }}>
-              {/* Header */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'start',
-                justifyContent: 'space-between',
-                marginBottom: '16px'
-              }}>
-                <h3 style={{
-                  fontSize: '1.25rem',
-                  fontWeight: '600',
-                  color: '#1c1917',
-                  margin: 0,
-                  fontFamily: 'Inter, sans-serif',
-                  flex: 1
-                }}>
-                  Eliminar vehículo
-                </h3>
-                {!deleteLoading && (
-                  <button
-                    onClick={() => setShowDeleteModal(false)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#57534e',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      borderRadius: '8px',
-                      transition: 'background-color 0.2s',
-                      fontSize: '20px',
-                      lineHeight: '1'
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    X
-                  </button>
-                )}
-              </div>
-
-              {/* Content */}
-              <div style={{ marginBottom: '24px' }}>
-                <p style={{
-                  color: '#57534e',
-                  fontSize: '1rem',
-                  margin: 0,
-                  fontFamily: 'Inter, sans-serif',
-                  lineHeight: '1.5'
-                }}>
-                  ¿Estás seguro de que quieres eliminar este vehículo? Esta acción no se puede deshacer. No podrás publicar viajes hasta que registres otro vehículo.
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  disabled={deleteLoading}
-                  style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    fontSize: '1rem',
-                    fontWeight: 'normal',
-                    color: '#032567',
-                    backgroundColor: 'white',
-                    border: '2px solid #032567',
-                    borderRadius: '25px',
-                    cursor: deleteLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                    fontFamily: 'Inter, sans-serif',
-                    opacity: deleteLoading ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!deleteLoading) e.target.style.backgroundColor = '#f8fafc';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!deleteLoading) e.target.style.backgroundColor = 'white';
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteLoading}
-                  style={{
-                    flex: 1,
-                    padding: '12px 24px',
-                    fontSize: '1rem',
-                    fontWeight: 'normal',
-                    color: 'white',
-                    backgroundColor: '#dc2626',
-                    border: 'none',
-                    borderRadius: '25px',
-                    cursor: deleteLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                    fontFamily: 'Inter, sans-serif',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    opacity: deleteLoading ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!deleteLoading) e.target.style.backgroundColor = '#b91c1c';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!deleteLoading) e.target.style.backgroundColor = '#dc2626';
-                  }}
-                >
-                  {deleteLoading ? (
-                    <>
-                      <div style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTop: '2px solid white',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite'
-                      }}></div>
-                      <span>Eliminando...</span>
-                    </>
-                  ) : (
-                    'Sí, eliminar vehículo'
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/driver/change-vehicle')}
+                style={{
+                  width: '100%',
+                  padding: 'clamp(10px, 2vw, 12px) clamp(20px, 4vw, 24px)',
+                  fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                  fontWeight: 'normal',
+                  color: 'white',
+                  backgroundColor: '#032567',
+                  border: 'none',
+                  borderRadius: '25px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: 'Inter, sans-serif'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#1A6EFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#032567';
+                }}
+              >
+                Cambiar vehículo
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
+      
+      {/* Responsive Styles */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-      `}</style>
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
+        
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .vehicle-photo-grid {
+            grid-template-columns: 1fr !important;
+            gap: clamp(12px, 2vw, 16px) !important;
+            margin-bottom: clamp(20px, 3vw, 24px) !important;
+          }
           .form-grid-2cols {
             grid-template-columns: 1fr !important;
+            gap: clamp(10px, 2vw, 12px) !important;
+          }
+          input {
+            font-size: clamp(0.875rem, 2vw, 0.9rem) !important;
+            padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 14px) !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .vehicle-photo-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(14px, 2vw, 20px) !important;
+          }
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(12px, 2vw, 14px) !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .vehicle-photo-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Desktop - 1025px and above */
+        @media (min-width: 1025px) {
+          .vehicle-photo-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .vehicle-photo-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(12px, 2vw, 16px) !important;
+          }
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: clamp(10px, 1.5vw, 12px) !important;
           }
         }
       `}</style>
     </div>
   );
 }
-

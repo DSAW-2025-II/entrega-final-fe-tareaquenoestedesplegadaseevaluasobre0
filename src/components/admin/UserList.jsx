@@ -1,11 +1,8 @@
+// Componente de lista de usuarios para admin: muestra lista de usuarios buscable y filtrable
 import { useState, useEffect } from 'react';
 import { listUsers } from '../../api/admin';
 import AdminActions from './AdminActions';
 
-/**
- * User List Component for Admin
- * Displays a searchable, filterable list of users
- */
 export default function UserList({ onUserSelect }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +27,7 @@ export default function UserList({ onUserSelect }) {
     loadUsers();
   }, [filters.page, filters.role, filters.status, filters.search]);
 
+  // Cargar usuarios con filtros aplicados
   const loadUsers = async () => {
     setLoading(true);
     setError(null);
@@ -428,6 +426,76 @@ export default function UserList({ onUserSelect }) {
           )}
         </>
       )}
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          table {
+            font-size: 0.8rem !important;
+          }
+          th, td {
+            padding: 8px 6px !important;
+            font-size: 0.75rem !important;
+          }
+          .filters-form {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            width: 100% !important;
+          }
+          .pagination-controls {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .pagination-controls button {
+            width: 100% !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          table {
+            font-size: 0.85rem !important;
+          }
+          th, td {
+            padding: 10px 8px !important;
+          }
+          .filters-form {
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          th, td {
+            padding: 10px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          table {
+            font-size: 0.8rem !important;
+          }
+          th, td {
+            padding: 8px 6px !important;
+          }
+        }
+        
+        /* Ensure table scrolls horizontally on small screens */
+        div[style*="overflowX"] {
+          -webkit-overflow-scrolling: touch;
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,23 +1,19 @@
-/**
- * Utility function to build full image URLs from relative paths
- * @param {string|null|undefined} relativePath - Relative path from backend (e.g., "/uploads/profiles/photo.jpg")
- * @returns {string|null} - Full URL or null if no path provided
- */
+// Utilidad para construir URLs completas de imágenes desde rutas relativas
 export function getImageUrl(relativePath) {
   if (!relativePath) return null;
   
-  // If already a full URL, return as is
+  // Si ya es una URL completa, retornarla tal cual
   if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
     return relativePath;
   }
   
-  // Get base URL from environment or default
+  // Obtener URL base del backend desde variables de entorno
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   
-  // Remove trailing slash from baseURL if present
+  // Eliminar barra final si existe
   const cleanBaseURL = baseURL.replace(/\/$/, '');
   
-  // Ensure relativePath starts with /
+  // Asegurar que la ruta relativa comience con /
   const cleanPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
   
   return `${cleanBaseURL}${cleanPath}`;

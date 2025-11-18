@@ -1,55 +1,42 @@
+// Cliente HTTP para todas las peticiones a la API: configuración centralizada de Axios
 import axios from 'axios';
 
-/**
- * Axios client configured for Wheels UniSabana API
- * - Includes credentials (JWT cookies)
- * - Automatically adds CSRF token to state-changing requests
- * - Base URL from environment variable
- */
-
+// Configurar Axios con base URL y cookies habilitadas (necesario para JWT en cookies httpOnly)
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-  withCredentials: true, // Important: Send cookies with requests
+  withCredentials: true, // Enviar cookies automáticamente en cada petición
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Store reference for clearing auth state on 401
+// Referencia al store de autenticación: permite limpiar sesión automáticamente en errores 401
 let authStore = null;
 
-/**
- * Set auth store reference (called from App.jsx or similar)
- * This allows the interceptor to clear auth state on 401 errors
- */
+// Conectar el store de autenticación: se llama desde App.jsx para habilitar manejo automático de errores 401
 export function setAuthStore(store) {
   authStore = store;
 }
 
-/**
- * Get CSRF token from cookies
- */
+// Obtener token CSRF de las cookies del navegador
 function getCsrfToken() {
   const match = document.cookie.match(/csrf_token=([^;]+)/);
   return match ? match[1] : null;
 }
 
-/**
- * Request interceptor: Add CSRF token to state-changing requests
- */
+// Interceptor de peticiones: agrega token CSRF y configura headers antes de enviar
 client.interceptors.request.use(
   (config) => {
     const csrfToken = getCsrfToken();
     
-    // Log request for debugging
     console.log(`[API Client] ${config.method.toUpperCase()} ${config.baseURL}${config.url}`);
     
-    // Add CSRF token to POST, PUT, PATCH, DELETE requests
+    // Agregar token CSRF a peticiones que modifican estado (protección contra CSRF)
     if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method.toUpperCase())) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
     
-    // If data is FormData, remove Content-Type header to let axios set it with boundary
+    // FormData: dejar que Axios configure Content-Type automáticamente con boundary
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -61,37 +48,47 @@ client.interceptors.request.use(
   }
 );
 
-/**
- * Response interceptor: Handle common errors
- */
+// Interceptor de respuestas: maneja errores de forma consistente y limpia sesión en 401
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle network errors
+    // Error de red: no hay respuesta del servidor (servidor caído o sin conexión)
     if (!error.response) {
+      const baseURL = error.config?.baseURL || 'unknown';
+      const url = error.config?.url || 'unknown';
+      const fullURL = `${baseURL}${url}`;
+      
+      console.error('[API Client] Network error:', {
+        message: error.message,
+        code: error.code,
+        url: fullURL,
+        baseURL,
+        path: url
+      });
+      
       return Promise.reject({
         code: 'network_error',
-        message: 'No se pudo conectar con el servidor. Verifica tu conexión a internet.',
+        message: `No se pudo conectar con el servidor en ${fullURL}. Verifica que el backend esté corriendo y que la URL sea correcta.`,
         originalError: error,
+        url: fullURL
       });
     }
 
-    // Handle 401 Unauthorized (missing or invalid session)
+    // Error 401: sesión expirada o inválida - limpiar sesión y redirigir
     if (error.response.status === 401) {
       const errorCode = error.response.data?.code || 'unauthorized';
       const errorMessage = error.response.data?.message || 'Missing or invalid session';
       
-      // Clear auth state if store is available
+      // Limpiar sesión del store de autenticación
       if (authStore) {
         authStore.getState().clearUser();
       }
       
-      // Only redirect if it's a session-related error (not login/register endpoints)
+      // Redirigir a inicio (excepto en endpoints de auth para evitar bucles de redirección)
       const url = error.config?.url || '';
       const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/logout');
       
       if (!isAuthEndpoint) {
-        // Redirect to home page
         window.location.href = '/';
       }
       
@@ -104,7 +101,7 @@ client.interceptors.response.use(
       });
     }
 
-    // Handle API errors with consistent format
+    // Otros errores HTTP: normalizar formato para consumo consistente en componentes
     const apiError = {
       status: error.response.status,
       code: error.response.data?.code || 'unknown_error',

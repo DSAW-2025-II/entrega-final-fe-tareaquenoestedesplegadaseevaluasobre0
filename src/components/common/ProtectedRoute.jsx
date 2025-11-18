@@ -1,18 +1,14 @@
+// Componente que protege rutas: requiere autenticación y opcionalmente un rol específico
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import { useEffect } from 'react';
 
-/**
- * ProtectedRoute component
- * Redirects to login if user is not authenticated
- * Optionally checks for specific role
- */
 export default function ProtectedRoute({ children, requiredRole }) {
   const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
 
+  // Logging para debugging: registrar intentos de acceso denegado
   useEffect(() => {
-    // Log access attempt for debugging
     if (requiredRole && user?.role !== requiredRole) {
       console.warn(
         `[ProtectedRoute] Access denied to ${location.pathname}. Required: ${requiredRole}, Current: ${user?.role}`
@@ -20,23 +16,23 @@ export default function ProtectedRoute({ children, requiredRole }) {
     }
   }, [requiredRole, user?.role, location.pathname]);
 
-  // Not authenticated -> redirect to login
+  // No autenticado: redirigir a login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role check (if specified)
+  // Verificar rol si se especificó uno
   if (requiredRole && user?.role !== requiredRole) {
-    // Special handling: If passenger tries to access driver routes, redirect to become-driver
+    // Manejo especial: pasajero intenta acceder a rutas de conductor
     if (requiredRole === 'driver' && user?.role === 'passenger') {
-      // If trying to register vehicle, redirect to become-driver flow
+      // Si intenta registrar vehículo, redirigir al flujo de convertirse en conductor
       if (location.pathname === '/driver/register-vehicle') {
         return <Navigate to="/become-driver" replace />;
       }
       return <Navigate to="/dashboard" replace />;
     }
     
-    // Redirect to appropriate page based on actual role
+    // Redirigir según el rol actual del usuario
     if (user?.role === 'passenger') {
       return <Navigate to="/dashboard" replace />;
     } else if (user?.role === 'driver') {
@@ -45,6 +41,6 @@ export default function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  return children; // Usuario autorizado: mostrar contenido
 }
 

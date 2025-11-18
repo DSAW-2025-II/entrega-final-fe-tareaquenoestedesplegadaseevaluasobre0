@@ -1,10 +1,7 @@
+// Componente de estadísticas de administración: muestra estadísticas generales del panel de admin
 import { useState, useEffect } from 'react';
 import { listUsers, listTrips, listBookings } from '../../api/admin';
 
-/**
- * Admin Statistics Component
- * Shows overview statistics for the admin dashboard
- */
 export default function AdminStats() {
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -19,6 +16,7 @@ export default function AdminStats() {
     loadStats();
   }, []);
 
+  // Cargar estadísticas generales del sistema
   const loadStats = async () => {
     try {
       const [usersData, tripsData, bookingsData] = await Promise.all([
@@ -27,10 +25,10 @@ export default function AdminStats() {
         listBookings({ page: 1, pageSize: 1 })
       ]);
 
-      // Get active trips count
+      // Obtener conteo de viajes activos
       const activeTripsData = await listTrips({ status: ['published'], page: 1, pageSize: 1 });
       
-      // Get pending bookings count
+      // Obtener conteo de reservas pendientes
       const pendingBookingsData = await listBookings({ status: ['pending'], page: 1, pageSize: 1 });
 
       setStats({
@@ -152,6 +150,51 @@ export default function AdminStats() {
           </p>
         </div>
       ))}
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .stat-card {
+            padding: 16px !important;
+          }
+          .stat-value {
+            font-size: 1.8rem !important;
+          }
+          .stat-title {
+            font-size: 0.85rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .stat-card {
+            padding: 12px !important;
+          }
+          .stat-value {
+            font-size: 1.5rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,7 +1,4 @@
-/**
- * Modal Component - Wheels UniSabana Design System
- * Confirmation dialogs and custom modals
- */
+// Componente Modal: diálogos de confirmación y modales personalizados
 import { useEffect } from 'react';
 import Button from './Button';
 
@@ -19,7 +16,7 @@ export default function Modal({
   size = 'md',
   showCancel = true,
 }) {
-  // Close on ESC key
+  // Cerrar con tecla ESC
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape' && !loading) {

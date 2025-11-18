@@ -1,3 +1,4 @@
+// Página de crear/editar reseña: permite a los pasajeros crear o editar reseñas de viajes completados
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createReview, getMyReviewForTrip, editMyReview, deleteMyReview } from '../../api/review';
@@ -5,10 +6,6 @@ import ReviewForm from '../../components/reviews/ReviewForm';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
 
-/**
- * Create/Edit Review Page
- * For passengers to review completed trips
- */
 export default function CreateReview() {
   const { tripId } = useParams();
   const navigate = useNavigate();
@@ -278,7 +275,7 @@ export default function CreateReview() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 50,
+            zIndex: 100,
             padding: '16px'
           }}
           onClick={() => !deleting && setShowDeleteModal(false)}
@@ -369,6 +366,45 @@ export default function CreateReview() {
           </div>
         </div>
       )}
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .review-form-container {
+            padding: 20px 16px !important;
+          }
+          .form-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .review-form-container {
+            padding: 16px 20px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

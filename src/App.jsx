@@ -1,9 +1,10 @@
+// Componente principal de la aplicación: define todas las rutas y configuración global
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import useAuthStore from './store/authStore';
-import { setAuthStore } from './api/client';
+import { setAuthStore } from './api/client'; // Conectar store para manejar errores 401 automáticamente
 
-// Pages
+// Páginas de la aplicación
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,7 @@ import MyProfile from './pages/profile/MyProfile';
 import RegisterVehicle from './pages/driver/RegisterVehicle';
 import BecomeDriver from './pages/driver/BecomeDriver';
 import MyVehicle from './pages/driver/MyVehicle';
+import ChangeVehicle from './pages/driver/ChangeVehicle';
 import CreateTripOffer from './pages/driver/CreateTripOffer';
 import TripDetails from './pages/driver/TripDetails';
 import BookingRequests from './pages/driver/BookingRequests';
@@ -25,22 +27,23 @@ import Reports from './pages/Reports';
 import DriverProfile from './pages/DriverProfile';
 import PassengerProfile from './pages/PassengerProfile';
 
-// Components
+// Componentes comunes
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 
+// Página de inicio: redirige a usuarios autenticados según su rol o muestra landing page
 function HomePage() {
   const { isAuthenticated, user } = useAuthStore();
 
-  // If authenticated, redirect based on role
   if (isAuthenticated) {
     if (user?.role === 'admin') {
-      return <Navigate to="/admin" replace />;
+      return <Navigate to="/admin" replace />; // Admin redirige al panel de administración
     }
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard" replace />; // Otros usuarios redirigen al dashboard
   }
 
+  // Usuario no autenticado: mostrar landing page con Hero
   return (
     <div className="text-neutral-900">
       <Navbar />
@@ -49,19 +52,19 @@ function HomePage() {
   );
 }
 
+// Router inteligente de mis viajes: muestra componente diferente según el rol del usuario
 function MyTripsRouter() {
   const { user } = useAuthStore();
   
-  // Render appropriate component based on role
   if (user?.role === 'driver') {
-    return <DriverMyTrips />;
+    return <DriverMyTrips />; // Vista de viajes para conductores (gestión de ofertas)
   } else {
-    return <PassengerMyTrips />;
+    return <PassengerMyTrips />; // Vista de viajes para pasajeros (gestión de reservas)
   }
 }
 
 export default function App() {
-  // Initialize auth store reference in API client for 401 handling
+  // Conectar el store de autenticación con el cliente API: permite limpiar sesión automáticamente en errores 401
   useEffect(() => {
     setAuthStore(useAuthStore);
   }, []);
@@ -69,12 +72,12 @@ export default function App() {
   return (
     <Router future={{ v7_relativeSplatPath: true }}>
       <Routes>
-        {/* Public routes */}
+        {/* Rutas públicas */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Dashboard - main page after login (both roles) */}
+        {/* Dashboard - requiere autenticación */}
         <Route 
           path="/dashboard" 
           element={
@@ -84,7 +87,7 @@ export default function App() {
           } 
         />
 
-        {/* Passenger routes */}
+        {/* Rutas de pasajero - requiere rol "passenger" */}
         <Route 
           path="/search" 
           element={
@@ -94,13 +97,11 @@ export default function App() {
           } 
         />
         
-        {/* Driver routes */}
-        {/* Note: /my-trips is used by both roles with different components */}
+        {/* Mis viajes - usa componente diferente según el rol */}
         <Route 
           path="/my-trips" 
           element={
             <ProtectedRoute>
-              {/* This will render different components based on role */}
               <MyTripsRouter />
             </ProtectedRoute>
           } 
@@ -118,6 +119,14 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="driver">
               <MyVehicle />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/driver/change-vehicle" 
+          element={
+            <ProtectedRoute requiredRole="driver">
+              <ChangeVehicle />
             </ProtectedRoute>
           } 
         />
@@ -154,7 +163,7 @@ export default function App() {
           }
         />
 
-        {/* Profile route (accessible to both roles) */}
+        {/* Perfil - requiere autenticación */}
         <Route 
           path="/profile" 
           element={
@@ -164,7 +173,7 @@ export default function App() {
           } 
         />
 
-        {/* Become driver route (only for passengers) */}
+        {/* Convertirse en conductor - solo para pasajeros */}
         <Route 
           path="/become-driver" 
           element={
@@ -174,7 +183,7 @@ export default function App() {
           } 
         />
 
-        {/* Review routes */}
+        {/* Crear reseña - solo para pasajeros */}
         <Route 
           path="/trips/:tripId/review" 
           element={
@@ -202,7 +211,7 @@ export default function App() {
           }
         />
 
-        {/* Reports route (accessible to both roles) */}
+        {/* Reportes - requiere autenticación */}
         <Route 
           path="/reports" 
           element={
@@ -212,7 +221,7 @@ export default function App() {
           } 
         />
 
-        {/* Driver Profile route (public, shows reviews) */}
+        {/* Perfil público de conductor - muestra reseñas */}
         <Route 
           path="/drivers/:driverId" 
           element={
@@ -222,7 +231,7 @@ export default function App() {
           } 
         />
 
-        {/* Passenger Profile route (public) */}
+        {/* Perfil público de pasajero */}
         <Route 
           path="/passengers/:passengerId" 
           element={
@@ -232,7 +241,7 @@ export default function App() {
           } 
         />
 
-        {/* Fallback */}
+        {/* Fallback: redirige rutas no definidas a la página de inicio */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

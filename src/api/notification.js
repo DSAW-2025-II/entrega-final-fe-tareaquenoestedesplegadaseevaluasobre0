@@ -1,29 +1,15 @@
+// Endpoints de notificaciones: operaciones relacionadas con notificaciones del usuario
 import client from './client';
 
-/**
- * Notification API endpoints
- */
-
-/**
- * List notifications for current user
- * @param {Object} [options] - Query options
- * @param {string} [options.status='all'] - 'unread' or 'all'
- * @param {number} [options.page=1] - Page number
- * @param {number} [options.pageSize=10] - Items per page
- * @returns {Promise<Object>} - {items, page, pageSize, total, totalPages}
- */
+// Listar notificaciones: obtener notificaciones del usuario actual con filtros opcionales
 export async function getNotifications(options = {}) {
   const response = await client.get('/notifications', {
-    params: options,
+    params: options, // status ('unread' o 'all'), page, pageSize
   });
   return response.data;
 }
 
-/**
- * Mark notifications as read
- * @param {string[]} notificationIds - Array of notification IDs
- * @returns {Promise<Object>} - {updated: number}
- */
+// Marcar como leídas: marcar una o más notificaciones como leídas por el usuario
 export async function markNotificationsAsRead(notificationIds) {
   const response = await client.patch('/notifications/read', {
     ids: notificationIds,

@@ -1,10 +1,11 @@
+// Página de convertirse en conductor: permite a los pasajeros registrarse como conductores y registrar su vehículo
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toggleRole } from '../../api/user';
 import { registerVehicle } from '../../api/vehicle';
 import useAuthStore from '../../store/authStore';
-import logo from '../../assets/images/UniSabana Logo.png';
+import Navbar from '../../components/common/Navbar';
 
 export default function BecomeDriver() {
   const navigate = useNavigate();
@@ -23,13 +24,13 @@ export default function BecomeDriver() {
   const { register, handleSubmit, formState: { errors }, watch } = useForm();
   const acceptTerms = watch('acceptTerms');
 
-  // Check if user already has a vehicle
+  // Verificar si el usuario ya tiene un vehículo
   useEffect(() => {
     const checkExistingVehicle = async () => {
       try {
         setCheckingVehicle(true);
         
-        // Toggle to driver temporarily to check vehicle status
+        // Cambiar temporalmente a conductor para verificar estado del vehículo
         const updatedUser = await toggleRole();
         
         if (updatedUser.driver?.hasVehicle) {
@@ -37,7 +38,7 @@ export default function BecomeDriver() {
           setShowForm(false);
           setUser(updatedUser);
         } else {
-          // Toggle back to passenger to show the form
+          // Volver a pasajero para mostrar el formulario
           await toggleRole();
           setAlreadyHasVehicle(false);
           setShowForm(true);
@@ -133,54 +134,8 @@ export default function BecomeDriver() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
-      {/* Simple Navbar - Only Logo and Text */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Main Content */}
       <div style={{
@@ -745,15 +700,63 @@ export default function BecomeDriver() {
       </div>
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
           .form-grid-2cols {
             grid-template-columns: 1fr !important;
+            gap: 12px !important;
           }
           .form-actions-flex {
             flex-direction: column-reverse !important;
+            gap: 12px !important;
           }
           .form-actions-flex button {
             width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+          input, textarea, select {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .photo-upload-section {
+            flex-direction: column !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .form-grid-2cols {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
           }
         }
       `}</style>

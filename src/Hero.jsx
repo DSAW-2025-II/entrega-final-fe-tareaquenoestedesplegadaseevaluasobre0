@@ -1,3 +1,4 @@
+// Componente Hero: sección principal de landing page con título, subtítulo y CTA
 import { Link } from 'react-router-dom';
 
 export default function Hero() {

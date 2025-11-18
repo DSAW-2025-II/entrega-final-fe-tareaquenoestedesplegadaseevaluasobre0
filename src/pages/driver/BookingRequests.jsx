@@ -1,7 +1,8 @@
+// Página de solicitudes de reserva (conductor): lista solicitudes de reserva del conductor (componente legacy/mock)
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import logo from '../../assets/images/UniSabana Logo.png';
+import Navbar from '../../components/common/Navbar';
 
 export default function BookingRequests() {
   const navigate = useNavigate();
@@ -10,20 +11,20 @@ export default function BookingRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('accepted');
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     loadBookings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
+  // Cargar reservas (implementación mock, en producción llamaría al backend)
   const loadBookings = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Simulate API call to get driver's booking requests
-      // In real implementation, this would call the backend
+      // Simular llamada API para obtener solicitudes de reserva del conductor
+      // En implementación real, esto llamaría al backend
       const mockBookings = [
         {
           id: '1',
@@ -100,124 +101,13 @@ export default function BookingRequests() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '16px 0'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana" 
-              style={{ height: '40px', width: 'auto' }}
-            />
-            <h1 style={{
-              fontSize: '1.5rem',
-              fontWeight: '600',
-              color: '#1e293b',
-              margin: 0,
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Reservas de Viajes
-            </h1>
-          </div>
-
-          {/* User Menu */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              style={{
-                height: '40px',
-                width: '40px',
-                borderRadius: '50%',
-                backgroundColor: '#3b82f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif'
-              }}
-            >
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </button>
-
-            {showProfileMenu && (
-              <div style={{
-                position: 'absolute',
-                right: 0,
-                top: '100%',
-                marginTop: '8px',
-                width: '200px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                border: '1px solid #e2e8f0',
-                padding: '8px 0',
-                zIndex: 50
-              }}>
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    navigate('/profile');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '8px 16px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    color: '#374151',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif'
-                  }}
-                >
-                  Mi Perfil
-                </button>
-                <button
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    logout();
-                    navigate('/login');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '8px 16px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    color: '#dc2626',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif'
-                  }}
-                >
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '24px 16px'
+        padding: 'clamp(16px, 4vw, 24px) clamp(12px, 3vw, 16px)'
       }}>
         {/* Navigation */}
         <div style={{
@@ -532,6 +422,59 @@ export default function BookingRequests() {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .booking-card {
+            padding: 16px !important;
+          }
+          .booking-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .booking-actions-flex {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+          .booking-actions-flex button {
+            width: 100% !important;
+            padding: 10px 16px !important;
+            font-size: 0.9rem !important;
+          }
+          .status-filter-tabs {
+            overflow-x: auto !important;
+            gap: 8px !important;
+          }
+          .status-filter-tabs button {
+            font-size: 0.8rem !important;
+            padding: 8px 12px !important;
+            white-space: nowrap !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .booking-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .booking-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .booking-card {
+            padding: 12px !important;
+          }
         }
       `}</style>
     </div>

@@ -1,3 +1,4 @@
+// Panel de administración: panel principal de administración con estadísticas y listas de gestión
 import { useState } from 'react';
 import ProtectedRoute from '../../components/common/ProtectedRoute';
 import { Link } from 'react-router-dom';
@@ -8,13 +9,10 @@ import BookingList from '../../components/admin/BookingList';
 import ReportList from '../../components/admin/ReportList';
 import Navbar from '../../components/common/Navbar';
 
-/**
- * Admin Dashboard Page
- * Main administration panel with statistics and management lists
- */
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Pestañas del panel de administración
   const tabs = [
     { id: 'overview', label: 'Resumen', icon: null },
     { id: 'users', label: 'Usuarios', icon: null },
@@ -272,13 +270,54 @@ export default function AdminDashboardPage() {
 
       {/* Responsive Styles */}
       <style>{`
+        /* Hide scrollbar but keep functionality */
         .admin-tabs::-webkit-scrollbar {
           display: none;
         }
-        @media (max-width: 768px) {
+        .admin-tabs {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
           .audit-link-button {
             width: 100% !important;
             justify-content: center !important;
+            padding: 10px 16px !important;
+            font-size: 0.85rem !important;
+          }
+          .admin-tab-button {
+            font-size: 0.8rem !important;
+            padding: 8px 12px !important;
+            white-space: nowrap !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .audit-link-button {
+            width: auto !important;
+            min-width: 140px !important;
+          }
+          .admin-tab-button {
+            font-size: 0.85rem !important;
+            padding: 10px 16px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .admin-tab-button {
+            padding: 10px 20px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .admin-tab-button {
+            padding: 8px 16px !important;
+            font-size: 0.85rem !important;
           }
         }
       `}</style>

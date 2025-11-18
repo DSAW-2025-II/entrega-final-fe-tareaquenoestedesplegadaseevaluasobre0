@@ -1,24 +1,30 @@
+// Componente de lista de reportes: muestra reportes de usuarios y reseñas para moderación por administradores
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listReports, updateReportStatus, createModerationNote, sendMessageToReportedUser } from '../../api/admin';
+import { listReports, listReviewReports, updateReportStatus, createModerationNote, sendMessageToReportedUser } from '../../api/admin';
+import { adminSetVisibility } from '../../api/review';
 import ModerationNoteModal from './ModerationNoteModal';
 import SendMessageModal from './SendMessageModal';
 
+// Etiquetas de categorías de reporte
 const CATEGORY_LABELS = {
   abuse: 'Abuso',
   harassment: 'Acoso',
   fraud: 'Fraude',
   no_show: 'No se presentó',
   unsafe_behavior: 'Comportamiento inseguro',
+  spam: 'Spam',
   other: 'Otro'
 };
 
+// Etiquetas de estados de reporte
 const STATUS_LABELS = {
   pending: 'Pendiente',
   reviewed: 'Revisado',
   resolved: 'Resuelto'
 };
 
+// Colores de estados de reporte
 const STATUS_COLORS = {
   pending: { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
   reviewed: { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' },
@@ -36,6 +42,7 @@ export default function ReportList() {
     category: ''
   });
   const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [hidingReview, setHidingReview] = useState(null); // reviewId siendo ocultada
   const [showModerationModal, setShowModerationModal] = useState(null); // { report }
   const [showMessageModal, setShowMessageModal] = useState(null); // { report }
   const [successMessage, setSuccessMessage] = useState(null);
@@ -44,18 +51,36 @@ export default function ReportList() {
     fetchReports();
   }, [page, filters]);
 
+  // Obtener reportes de usuarios y reseñas combinados
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const data = await listReports({
-        page,
-        pageSize: 25,
-        status: filters.status || undefined,
-        category: filters.category || undefined,
-        sort: '-createdAt'
-      });
-      setReports(data.items || []);
-      setTotalPages(data.totalPages || 1);
+      // Fetch both user reports and review reports
+      const [userReportsData, reviewReportsData] = await Promise.all([
+        listReports({
+          page,
+          pageSize: 25,
+          status: filters.status || undefined,
+          category: filters.category || undefined,
+          sort: '-createdAt'
+        }),
+        listReviewReports({
+          page,
+          pageSize: 25,
+          category: filters.category || undefined,
+          sort: '-createdAt'
+        })
+      ]);
+      
+      // Combine both types of reports and sort by createdAt
+      const allReports = [
+        ...(userReportsData.items || []).map(r => ({ ...r, type: 'user' })),
+        ...(reviewReportsData.items || [])
+      ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setReports(allReports);
+      // Use the maximum totalPages from both sources
+      setTotalPages(Math.max(userReportsData.totalPages || 1, reviewReportsData.totalPages || 1));
     } catch (err) {
       console.error('Error fetching reports:', err);
     } finally {
@@ -87,9 +112,10 @@ export default function ReportList() {
   const handleCreateModerationNote = async (category, reason) => {
     const report = showModerationModal;
     try {
+      const userId = report.type === 'review' ? report.reviewAuthor.id : report.reportedUser.id;
       await createModerationNote(
         'user',
-        report.reportedUser.id,
+        userId,
         category,
         reason,
         [] // evidence array (empty for now)
@@ -113,6 +139,22 @@ export default function ReportList() {
     } catch (err) {
       console.error('Error sending message:', err);
       throw err; // Let the modal handle the error
+    }
+  };
+
+  const handleHideReview = async (reviewId) => {
+    try {
+      setHidingReview(reviewId);
+      await adminSetVisibility(reviewId, 'hide', 'Reseña eliminada por moderador debido a reporte');
+      setSuccessMessage('Reseña ocultada exitosamente');
+      setTimeout(() => setSuccessMessage(null), 5000);
+      // Refresh reports to update the review status
+      await fetchReports();
+    } catch (err) {
+      console.error('Error hiding review:', err);
+      alert('Error al ocultar la reseña: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setHidingReview(null);
     }
   };
 
@@ -277,7 +319,7 @@ export default function ReportList() {
               borderBottom: '1px solid #e7e5e4'
             }}>
               {reports.map((report) => {
-                const statusColor = STATUS_COLORS[report.status] || STATUS_COLORS.pending;
+                const statusColor = report.status ? (STATUS_COLORS[report.status] || STATUS_COLORS.pending) : null;
                 const reportDate = new Date(report.createdAt);
                 const formattedDate = reportDate.toLocaleDateString('es-CO', {
                   year: 'numeric',
@@ -314,18 +356,34 @@ export default function ReportList() {
                           marginBottom: '12px',
                           flexWrap: 'wrap'
                         }}>
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            fontFamily: 'Inter, sans-serif',
-                            backgroundColor: statusColor.bg,
-                            color: statusColor.text,
-                            border: `1px solid ${statusColor.border}`
-                          }}>
-                            {STATUS_LABELS[report.status] || report.status}
-                          </span>
+                          {report.type === 'review' && (
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '0.85rem',
+                              fontWeight: '500',
+                              fontFamily: 'Inter, sans-serif',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a'
+                            }}>
+                              Reporte de Reseña
+                            </span>
+                          )}
+                          {report.status && statusColor && (
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '0.85rem',
+                              fontWeight: '500',
+                              fontFamily: 'Inter, sans-serif',
+                              backgroundColor: statusColor.bg,
+                              color: statusColor.text,
+                              border: `1px solid ${statusColor.border}`
+                            }}>
+                              {STATUS_LABELS[report.status] || report.status}
+                            </span>
+                          )}
                           <span style={{
                             padding: '4px 12px',
                             borderRadius: '20px',
@@ -360,7 +418,7 @@ export default function ReportList() {
                               margin: '0 0 4px 0',
                               fontFamily: 'Inter, sans-serif'
                             }}>
-                              Usuario Reportado
+                              {report.type === 'review' ? 'Autor de la Reseña' : 'Usuario Reportado'}
                             </p>
                             <div style={{
                               display: 'flex',
@@ -368,7 +426,10 @@ export default function ReportList() {
                               gap: '8px'
                             }}>
                               <button
-                                onClick={() => handleViewUser(report.reportedUser.id, report.reportedUser.role)}
+                                onClick={() => {
+                                  const user = report.type === 'review' ? report.reviewAuthor : report.reportedUser;
+                                  handleViewUser(user.id, user.role);
+                                }}
                                 style={{
                                   padding: 0,
                                   background: 'none',
@@ -382,14 +443,20 @@ export default function ReportList() {
                                   textUnderlineOffset: '2px'
                                 }}
                               >
-                                {report.reportedUser.firstName} {report.reportedUser.lastName}
+                                {report.type === 'review' 
+                                  ? `${report.reviewAuthor.firstName} ${report.reviewAuthor.lastName}`
+                                  : `${report.reportedUser.firstName} ${report.reportedUser.lastName}`
+                                }
                               </button>
                               <span style={{
                                 fontSize: '0.75rem',
                                 color: '#78716c',
                                 fontFamily: 'Inter, sans-serif'
                               }}>
-                                ({report.reportedUser.role === 'driver' ? 'Conductor' : 'Pasajero'})
+                                ({report.type === 'review' 
+                                  ? (report.reviewAuthor.role === 'driver' ? 'Conductor' : 'Pasajero')
+                                  : (report.reportedUser.role === 'driver' ? 'Conductor' : 'Pasajero')
+                                })
                               </span>
                             </div>
                             <p style={{
@@ -398,9 +465,55 @@ export default function ReportList() {
                               margin: '4px 0 0 0',
                               fontFamily: 'Inter, sans-serif'
                             }}>
-                              {report.reportedUser.corporateEmail}
+                              {report.type === 'review' 
+                                ? report.reviewAuthor.corporateEmail
+                                : report.reportedUser.corporateEmail
+                              }
                             </p>
                           </div>
+                          {report.type === 'review' && report.reviewTarget && (
+                            <div>
+                              <p style={{
+                                fontSize: '0.8rem',
+                                color: '#78716c',
+                                margin: '0 0 4px 0',
+                                fontFamily: 'Inter, sans-serif'
+                              }}>
+                                Conductor de la Reseña
+                              </p>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}>
+                                <button
+                                  onClick={() => handleViewUser(report.reviewTarget.id, report.reviewTarget.role)}
+                                  style={{
+                                    padding: 0,
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#032567',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '500',
+                                    fontFamily: 'Inter, sans-serif',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline',
+                                    textUnderlineOffset: '2px'
+                                  }}
+                                >
+                                  {report.reviewTarget.firstName} {report.reviewTarget.lastName}
+                                </button>
+                              </div>
+                              <p style={{
+                                fontSize: '0.8rem',
+                                color: '#57534e',
+                                margin: '4px 0 0 0',
+                                fontFamily: 'Inter, sans-serif'
+                              }}>
+                                {report.reviewTarget.corporateEmail}
+                              </p>
+                            </div>
+                          )}
                           <div>
                             <p style={{
                               fontSize: '0.8rem',
@@ -430,47 +543,103 @@ export default function ReportList() {
                           </div>
                         </div>
 
-                        {/* Trip Info */}
-                        <div style={{
-                          padding: '12px',
-                          backgroundColor: '#f5f5f4',
-                          borderRadius: '8px',
-                          marginBottom: '12px'
-                        }}>
-                          <p style={{
-                            fontSize: '0.8rem',
-                            color: '#78716c',
-                            margin: '0 0 4px 0',
-                            fontFamily: 'Inter, sans-serif'
+                        {/* Review Info (for review reports) */}
+                        {report.type === 'review' && report.review && (
+                          <div style={{
+                            padding: '12px',
+                            backgroundColor: '#eff6ff',
+                            borderRadius: '8px',
+                            marginBottom: '12px',
+                            border: '1px solid #bfdbfe'
                           }}>
-                            Viaje relacionado
-                          </p>
-                          <p style={{
-                            fontSize: '0.9rem',
-                            fontWeight: '500',
-                            color: '#1c1917',
-                            margin: '0 0 4px 0',
-                            fontFamily: 'Inter, sans-serif'
-                          }}>
-                            {report.trip.origin} → {report.trip.destination}
-                          </p>
-                          {report.trip.departureAt && (
                             <p style={{
                               fontSize: '0.8rem',
-                              color: '#57534e',
-                              margin: 0,
+                              color: '#78716c',
+                              margin: '0 0 4px 0',
                               fontFamily: 'Inter, sans-serif'
                             }}>
-                              {new Date(report.trip.departureAt).toLocaleDateString('es-CO', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                              Reseña Reportada
                             </p>
-                          )}
-                        </div>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              marginBottom: '8px'
+                            }}>
+                              <span style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: '#032567',
+                                fontFamily: 'Inter, sans-serif'
+                              }}>
+                                {'★'.repeat(report.review.rating)}{'☆'.repeat(5 - report.review.rating)}
+                              </span>
+                              <span style={{
+                                fontSize: '0.85rem',
+                                color: '#57534e',
+                                fontFamily: 'Inter, sans-serif'
+                              }}>
+                                ({report.review.rating}/5)
+                              </span>
+                            </div>
+                            {report.review.text && (
+                              <p style={{
+                                fontSize: '0.9rem',
+                                color: '#1c1917',
+                                margin: '8px 0 0 0',
+                                fontFamily: 'Inter, sans-serif',
+                                lineHeight: '1.5',
+                                fontStyle: 'italic'
+                              }}>
+                                "{report.review.text}"
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Trip Info */}
+                        {report.trip && report.trip.origin && (
+                          <div style={{
+                            padding: '12px',
+                            backgroundColor: '#f5f5f4',
+                            borderRadius: '8px',
+                            marginBottom: '12px'
+                          }}>
+                            <p style={{
+                              fontSize: '0.8rem',
+                              color: '#78716c',
+                              margin: '0 0 4px 0',
+                              fontFamily: 'Inter, sans-serif'
+                            }}>
+                              Viaje relacionado
+                            </p>
+                            <p style={{
+                              fontSize: '0.9rem',
+                              fontWeight: '500',
+                              color: '#1c1917',
+                              margin: '0 0 4px 0',
+                              fontFamily: 'Inter, sans-serif'
+                            }}>
+                              {report.trip.origin} → {report.trip.destination}
+                            </p>
+                            {report.trip.departureAt && (
+                              <p style={{
+                                fontSize: '0.8rem',
+                                color: '#57534e',
+                                margin: 0,
+                                fontFamily: 'Inter, sans-serif'
+                              }}>
+                                {new Date(report.trip.departureAt).toLocaleDateString('es-CO', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        )}
 
                         {/* Reason */}
                         {report.reason && (
@@ -508,26 +677,31 @@ export default function ReportList() {
                         gap: '8px',
                         minWidth: '150px'
                       }}>
-                        <select
-                          value={report.status}
-                          onChange={(e) => handleStatusChange(report.id, e.target.value)}
-                          disabled={updatingStatus === report.id}
-                          style={{
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            border: '1px solid #e7e5e4',
-                            fontSize: '0.85rem',
-                            fontFamily: 'Inter, sans-serif',
-                            cursor: updatingStatus === report.id ? 'not-allowed' : 'pointer',
-                            opacity: updatingStatus === report.id ? 0.6 : 1
-                          }}
-                        >
-                          <option value="pending">Pendiente</option>
-                          <option value="reviewed">Revisado</option>
-                          <option value="resolved">Resuelto</option>
-                        </select>
+                        {report.type === 'user' && report.status !== undefined && (
+                          <select
+                            value={report.status}
+                            onChange={(e) => handleStatusChange(report.id, e.target.value)}
+                            disabled={updatingStatus === report.id}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #e7e5e4',
+                              fontSize: '0.85rem',
+                              fontFamily: 'Inter, sans-serif',
+                              cursor: updatingStatus === report.id ? 'not-allowed' : 'pointer',
+                              opacity: updatingStatus === report.id ? 0.6 : 1
+                            }}
+                          >
+                            <option value="pending">Pendiente</option>
+                            <option value="reviewed">Revisado</option>
+                            <option value="resolved">Resuelto</option>
+                          </select>
+                        )}
                         <button
-                          onClick={() => handleViewUser(report.reportedUser.id, report.reportedUser.role)}
+                          onClick={() => {
+                            const user = report.type === 'review' ? report.reviewAuthor : report.reportedUser;
+                            handleViewUser(user.id, user.role);
+                          }}
                           style={{
                             padding: '8px 16px',
                             backgroundColor: '#032567',
@@ -543,7 +717,7 @@ export default function ReportList() {
                           onMouseEnter={(e) => e.target.style.backgroundColor = '#1A6EFF'}
                           onMouseLeave={(e) => e.target.style.backgroundColor = '#032567'}
                         >
-                          Ver Usuario
+                          {report.type === 'review' ? 'Ver Autor de Reseña' : 'Ver Usuario'}
                         </button>
                         <button
                           onClick={() => setShowModerationModal(report)}
@@ -568,25 +742,63 @@ export default function ReportList() {
                         >
                           Agregar Nota
                         </button>
-                        <button
-                          onClick={() => setShowMessageModal(report)}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#032567',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            fontFamily: 'Inter, sans-serif',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#1A6EFF'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = '#032567'}
-                        >
-                          Enviar Mensaje
-                        </button>
+                        {report.type === 'user' && (
+                          <button
+                            onClick={() => setShowMessageModal(report)}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#032567',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '0.85rem',
+                              fontWeight: '500',
+                              fontFamily: 'Inter, sans-serif',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#1A6EFF'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = '#032567'}
+                          >
+                            Enviar Mensaje
+                          </button>
+                        )}
+                        {report.type === 'review' && report.review && (
+                          <button
+                            onClick={() => handleHideReview(report.review.id)}
+                            disabled={hidingReview === report.review.id || report.review.status === 'hidden'}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: hidingReview === report.review.id || report.review.status === 'hidden' ? '#78716c' : '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '0.85rem',
+                              fontWeight: '500',
+                              fontFamily: 'Inter, sans-serif',
+                              cursor: hidingReview === report.review.id || report.review.status === 'hidden' ? 'not-allowed' : 'pointer',
+                              transition: 'background-color 0.2s',
+                              opacity: hidingReview === report.review.id || report.review.status === 'hidden' ? 0.6 : 1
+                            }}
+                            onMouseEnter={(e) => {
+                              if (hidingReview !== report.review.id && report.review.status !== 'hidden') {
+                                e.target.style.backgroundColor = '#b91c1c';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (hidingReview !== report.review.id && report.review.status !== 'hidden') {
+                                e.target.style.backgroundColor = '#dc2626';
+                              }
+                            }}
+                          >
+                            {hidingReview === report.review.id 
+                              ? 'Ocultando...' 
+                              : report.review.status === 'hidden' 
+                                ? 'Reseña Ocultada' 
+                                : 'Ocultar Reseña'
+                            }
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -654,32 +866,104 @@ export default function ReportList() {
       {/* Moderation Note Modal */}
       {showModerationModal && (
         <ModerationNoteModal
-          userName={`${showModerationModal.reportedUser.firstName} ${showModerationModal.reportedUser.lastName}`}
+          userName={showModerationModal.type === 'review' 
+            ? `${showModerationModal.reviewAuthor.firstName} ${showModerationModal.reviewAuthor.lastName}`
+            : `${showModerationModal.reportedUser.firstName} ${showModerationModal.reportedUser.lastName}`
+          }
           reportCategory={showModerationModal.category}
           reportReason={showModerationModal.reason}
-          tripInfo={{
+          tripInfo={showModerationModal.trip && showModerationModal.trip.origin ? {
             origin: showModerationModal.trip.origin,
             destination: showModerationModal.trip.destination
-          }}
+          } : null}
           onCancel={() => setShowModerationModal(null)}
           onConfirm={handleCreateModerationNote}
         />
       )}
 
       {/* Send Message Modal */}
-      {showMessageModal && (
+      {showMessageModal && showMessageModal.type === 'user' && (
         <SendMessageModal
           userName={`${showMessageModal.reportedUser.firstName} ${showMessageModal.reportedUser.lastName}`}
           reportCategory={showMessageModal.category}
           reportReason={showMessageModal.reason}
-          tripInfo={{
+          tripInfo={showMessageModal.trip && showMessageModal.trip.origin ? {
             origin: showMessageModal.trip.origin,
             destination: showMessageModal.trip.destination
-          }}
+          } : null}
           onCancel={() => setShowMessageModal(null)}
           onConfirm={handleSendMessage}
         />
       )}
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .report-card {
+            padding: 16px !important;
+          }
+          .report-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .report-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .filters-form {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            width: 100% !important;
+          }
+          .pagination-controls {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .pagination-controls button {
+            width: 100% !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .report-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+          .filters-form {
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .filters-form input,
+          .filters-form select {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .report-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .report-card {
+            padding: 12px !important;
+          }
+          .report-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

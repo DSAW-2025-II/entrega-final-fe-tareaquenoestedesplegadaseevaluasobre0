@@ -1,6 +1,8 @@
+// Componente Toast: notificación temporal que se auto-cierra después de un tiempo
 import { useEffect } from 'react';
 
 export default function Toast({ message, type = 'info', onClose, duration = 3000 }) {
+  // Auto-cerrar después de la duración especificada
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -13,19 +15,21 @@ export default function Toast({ message, type = 'info', onClose, duration = 3000
   const getStyles = () => {
     const baseStyles = {
       position: 'fixed',
-      top: '24px',
-      right: '24px',
-      padding: '16px 24px',
+      top: 'clamp(16px, 4vw, 24px)',
+      right: 'clamp(16px, 4vw, 24px)',
+      left: 'clamp(16px, 4vw, auto)',
+      padding: 'clamp(12px, 3vw, 16px) clamp(16px, 4vw, 24px)',
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
-      minWidth: '300px',
-      maxWidth: '500px',
+      gap: 'clamp(8px, 2vw, 12px)',
+      minWidth: 'clamp(280px, 80vw, 300px)',
+      maxWidth: 'clamp(280px, 90vw, 500px)',
+      width: 'auto',
       zIndex: 9999,
       fontFamily: 'Inter, sans-serif',
-      fontSize: '0.95rem',
+      fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
       animation: 'slideInRight 0.3s ease-out',
     };
 

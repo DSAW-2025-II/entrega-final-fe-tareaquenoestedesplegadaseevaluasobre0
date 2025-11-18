@@ -1,21 +1,23 @@
+// Store de reservas: gestiona estado de reservas del usuario (persistido en localStorage)
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const useBookingStore = create(
   persist(
     (set, get) => ({
-      // State
+      // Estado: lista de reservas, carga y errores
       bookings: [],
       isLoading: false,
       error: null,
       
-      // Actions
+      // Acciones: establecer carga, errores y limpiar errores
       setLoading: (loading) => set({ isLoading: loading }),
       
       setError: (error) => set({ error }),
       
       clearError: () => set({ error: null }),
       
+      // Acciones de gestión de reservas: establecer, agregar, actualizar y eliminar
       setBookings: (bookings) => set({ bookings }),
       
       addBooking: (booking) => set((state) => ({
@@ -32,7 +34,7 @@ export const useBookingStore = create(
         bookings: state.bookings.filter(booking => booking.id !== bookingId)
       })),
       
-      // Helper methods
+      // Métodos helper: buscar por ID, estado o ID de viaje
       getBookingById: (id) => {
         return get().bookings.find(booking => booking.id === id);
       },
@@ -45,7 +47,7 @@ export const useBookingStore = create(
         return get().bookings.filter(booking => booking.tripId === tripId);
       },
       
-      // API Actions
+      // Acciones de API: obtener reservas desde el servidor
       fetchBookings: async (filters = {}) => {
         set({ isLoading: true, error: null });
         
@@ -121,6 +123,7 @@ export const useBookingStore = create(
         }
       },
       
+      // Actualizar estado de reserva: aceptar, rechazar o cancelar
       updateBookingStatus: async (bookingId, status, decisionData = {}) => {
         set({ isLoading: true, error: null });
         
@@ -158,11 +161,12 @@ export const useBookingStore = create(
         }
       },
       
+      // Cancelar reserva: wrapper para updateBookingStatus con estado canceled_by_passenger
       cancelBooking: async (bookingId, reason = '') => {
         return get().updateBookingStatus(bookingId, 'canceled_by_passenger', { reason });
       },
       
-      // Payment related methods
+      // Métodos relacionados con pagos: marcar reserva como pagada
       markBookingAsPaid: (bookingId) => {
         set((state) => ({
           bookings: state.bookings.map(booking => 
@@ -171,7 +175,7 @@ export const useBookingStore = create(
         }));
       },
       
-      // Statistics
+      // Estadísticas: contar reservas por estado y totales
       getBookingStats: () => {
         const bookings = get().bookings;
         return {
@@ -185,8 +189,9 @@ export const useBookingStore = create(
       }
     }),
     {
-      name: 'booking-store',
+      name: 'booking-store', // Clave en localStorage
       partialize: (state) => ({
+        // Solo persistir reservas en localStorage
         bookings: state.bookings
       })
     }

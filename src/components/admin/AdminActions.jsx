@@ -1,3 +1,4 @@
+// Componente de acciones administrativas: muestra botones de acciones admin según contexto (usuario, viaje, reserva, conductor)
 import { useState } from 'react';
 import AdminActionModal from './AdminActionModal';
 import BookingCorrectionModal from './BookingCorrectionModal';
@@ -7,17 +8,20 @@ import useAuthStore from '../../store/authStore';
 
 export default function AdminActions({ userId, tripId, bookingId, driverId, booking, driverBanUntil, onDone }) {
   const user = useAuthStore((s) => s.user);
+  // Estado para configuración de modales y visibilidad
   const [modalConfig, setModalConfig] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showPublishBanModal, setShowPublishBanModal] = useState(false);
 
   if (!user || user.role !== 'admin') return null;
 
-  // Prevent admin from suspending/reactivating themselves
+  // Prevenir que admin se suspenda/reactive a sí mismo
   const isSelfAction = userId && user.id === userId;
 
+  // Abrir modal genérico de acción admin
   const openModal = (title, actionLabel, handler) => setModalConfig({ title, actionLabel, handler });
 
+  // Handlers para acciones administrativas: suspender, reactivar, cancelar viaje, corregir reserva, ban de publicación, crear nota
   const handleSuspend = () => openModal('Suspender usuario', 'Suspender', async (reason) => {
     await suspendUser(userId, true, reason);
     setModalConfig(null);

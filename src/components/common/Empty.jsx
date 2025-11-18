@@ -1,7 +1,4 @@
-/**
- * Empty State Component - Wheels UniSabana Design System
- * Display empty states with icons and actions
- */
+// Componente de estado vacío: muestra estados vacíos con iconos y acciones
 import Button from './Button';
 import Card from './Card';
 
@@ -42,9 +39,7 @@ export default function Empty({
   return content;
 }
 
-/**
- * Predefined empty states
- */
+// Estados vacíos predefinidos
 export function EmptyTrips({ onCreateTrip, isDriver = false }) {
   return (
     <Empty

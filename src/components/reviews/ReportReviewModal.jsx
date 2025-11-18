@@ -1,6 +1,8 @@
+// Modal de reporte de reseña: permite reportar reseñas con categoría y motivo opcional
 import { useState } from 'react';
 import { reportReview } from '../../api/review';
 
+// Categorías disponibles para reportar reseñas
 const CATEGORIES = [
   { value: 'spam', label: 'Spam / Publicidad' },
   { value: 'abuse', label: 'Lenguaje abusivo / Discriminación' },
@@ -8,11 +10,13 @@ const CATEGORIES = [
 ];
 
 export default function ReportReviewModal({ reviewId, onClose, onReported }) {
+  // Estado para categoría seleccionada, motivo opcional, envío y errores
   const [category, setCategory] = useState(CATEGORIES[0].value);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Manejar envío del formulario de reporte
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);

@@ -1,7 +1,4 @@
-/**
- * Alert Component - Wheels UniSabana Design System
- * Display contextual feedback messages
- */
+// Componente Alert: muestra mensajes de retroalimentación contextuales
 export default function Alert({ 
   type = 'info', 
   message, 

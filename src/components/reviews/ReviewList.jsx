@@ -1,3 +1,4 @@
+// Componente de lista de reseñas: muestra reseñas de un conductor con resumen de calificaciones
 import { useState, useEffect, useCallback } from 'react';
 import { getDriverReviews, getDriverRatings, adminSetVisibility } from '../../api/review';
 import { reportReview } from '../../api/review';
@@ -7,10 +8,6 @@ import { Star } from 'lucide-react';
 import Loading from '../common/Loading';
 import Empty from '../common/Empty';
 
-/**
- * Review List Component
- * Displays reviews for a driver with ratings summary
- */
 export default function ReviewList({ driverId }) {
   const [reviews, setReviews] = useState([]);
   const [ratings, setRatings] = useState(null);
@@ -20,6 +17,7 @@ export default function ReviewList({ driverId }) {
   const [showReportModalFor, setShowReportModalFor] = useState(null);
   const [reportedCooldowns, setReportedCooldowns] = useState({});
 
+  // Obtener reseñas del conductor con paginación
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
@@ -33,6 +31,7 @@ export default function ReviewList({ driverId }) {
     }
   }, [driverId, page]);
 
+  // Obtener agregados de calificaciones del conductor
   const fetchRatings = useCallback(async () => {
     try {
       const data = await getDriverRatings(driverId);
@@ -47,7 +46,7 @@ export default function ReviewList({ driverId }) {
     fetchRatings();
   }, [driverId, page, fetchReviews, fetchRatings]);
 
-  // Refresh ratings when window regains focus (e.g., after creating a review in another tab/page)
+  // Refrescar calificaciones cuando la ventana recupera el foco (ej: después de crear reseña en otra pestaña)
   useEffect(() => {
     const handleFocus = () => {
       fetchRatings();
@@ -58,9 +57,9 @@ export default function ReviewList({ driverId }) {
     return () => window.removeEventListener('focus', handleFocus);
   }, [driverId, fetchRatings, fetchReviews]);
 
-  // Refresh ratings periodically to catch new reviews (every 30 seconds)
+  // Refrescar calificaciones periódicamente para capturar nuevas reseñas (cada 30 segundos)
   useEffect(() => {
-    // Only set up interval if component is visible
+    // Solo configurar intervalo si el componente es visible
     const interval = setInterval(() => {
       if (!document.hidden) {
         fetchRatings();
@@ -259,6 +258,74 @@ export default function ReviewList({ driverId }) {
           }}
         />
       )}
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .review-card {
+            padding: 16px !important;
+          }
+          .review-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .review-rating-stars {
+            font-size: 0.9rem !important;
+          }
+          .review-tags-container {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+          .review-tag {
+            font-size: 0.75rem !important;
+            padding: 4px 8px !important;
+          }
+          .ratings-summary-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .pagination-controls {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .pagination-controls button {
+            width: 100% !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .ratings-summary-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+          .pagination-controls {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .pagination-controls button {
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .ratings-summary-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .review-card {
+            padding: 12px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

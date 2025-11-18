@@ -1,3 +1,4 @@
+// Página de verificación de conductor: permite a los conductores enviar documentos para verificación
 import { useState, useEffect, useRef } from 'react';
 import { submitVerification, getMyVerification } from '../../api/driverVerification';
 import Loading from '../../components/common/Loading';
@@ -8,7 +9,7 @@ export default function DriverVerificationPage() {
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState(null);
 
-  // form state
+  // Referencias a campos del formulario
   const fullNameRef = useRef();
   const documentNumberRef = useRef();
   const licenseNumberRef = useRef();
@@ -24,13 +25,14 @@ export default function DriverVerificationPage() {
     loadProfile();
   }, []);
 
+  // Cargar perfil de verificación existente
   const loadProfile = async () => {
     try {
       setLoading(true);
       const data = await getMyVerification();
       setProfile(data);
     } catch (err) {
-      // 404 means no profile yet; ignore
+      // 404 significa que aún no hay perfil; ignorar
       if (err?.response?.status !== 404) {
         console.error('Failed to load verification profile', err);
         setError('Error cargando datos de verificación');
@@ -40,6 +42,7 @@ export default function DriverVerificationPage() {
     }
   };
 
+  // Manejar envío del formulario de verificación
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -59,9 +62,9 @@ export default function DriverVerificationPage() {
       if (soatRef.current.files[0]) fd.append('soat', soatRef.current.files[0]);
 
       const resp = await submitVerification(fd);
-      // resp contains status and profile minimal DTO per backend
+      // resp contiene status y perfil mínimo DTO según backend
       setProfile(resp);
-      // scroll to result
+      // Desplazar al resultado
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('submit verification failed', err);
@@ -155,6 +158,72 @@ export default function DriverVerificationPage() {
           </button>
         </div>
       </form>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          form {
+            padding: 20px 16px !important;
+          }
+          .form-grid-2cols {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .photo-upload-section {
+            flex-direction: column !important;
+            gap: 16px !important;
+          }
+          .form-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+          input, select {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .form-grid-2cols {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .form-grid-2cols {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

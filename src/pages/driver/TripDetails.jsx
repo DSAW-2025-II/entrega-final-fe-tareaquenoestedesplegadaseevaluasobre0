@@ -1,10 +1,11 @@
+// Página de detalles de viaje (conductor): muestra detalles del viaje y permite gestionar reservas
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getTripOfferById, getTripBookings, acceptBooking, declineBooking, startTrip, completeTrip } from '../../api/tripOffer';
-import logo from '../../assets/images/UniSabana Logo.png';
+import { confirmCashPayment } from '../../api/payment';
 import Toast from '../../components/common/Toast';
 import ReportUserModal from '../../components/users/ReportUserModal';
-import NotificationBell from '../../components/notifications/NotificationBell';
+import Navbar from '../../components/common/Navbar';
 import useAuthStore from '../../store/authStore';
 
 export default function TripDetails() {
@@ -28,6 +29,7 @@ export default function TripDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Cargar detalles del viaje
   const loadTripDetails = async () => {
     try {
       setLoading(true);
@@ -49,6 +51,7 @@ export default function TripDetails() {
     }
   };
 
+  // Cargar reservas del viaje
   const loadBookings = async () => {
     try {
       setBookingsLoading(true);
@@ -56,12 +59,13 @@ export default function TripDetails() {
       setBookings(data.items || []);
     } catch (err) {
       console.error('[TripDetails] Bookings error:', err);
-      // Don't set error for bookings, just log it
+      // No establecer error para reservas, solo loguearlo
     } finally {
       setBookingsLoading(false);
     }
   };
 
+  // Aceptar solicitud de reserva
   const handleAcceptBooking = async (bookingId) => {
     setActionLoading(true);
     setError(null);
@@ -74,8 +78,8 @@ export default function TripDetails() {
         type: 'success'
       });
       setSelectedBooking(null);
-      loadBookings(); // Reload bookings
-      loadTripDetails(); // Reload trip (to update available seats)
+      loadBookings(); // Recargar reservas
+      loadTripDetails(); // Recargar viaje (para actualizar asientos disponibles)
     } catch (err) {
       console.error('[TripDetails] Accept error:', err);
       setToast({
@@ -87,6 +91,7 @@ export default function TripDetails() {
     }
   };
 
+  // Rechazar solicitud de reserva
   const handleDeclineBooking = async (bookingId) => {
     setActionLoading(true);
     setError(null);
@@ -243,60 +248,8 @@ export default function TripDetails() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
-      {/* Simple Navbar */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
-
-          {/* Right: Notifications */}
-          {user && (
-            <NotificationBell />
-          )}
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar />
 
       {/* Main Content */}
       <div style={{
@@ -805,6 +758,40 @@ export default function TripDetails() {
                           }}>
                             {booking.seats} {booking.seats === 1 ? 'asiento' : 'asientos'}
                           </p>
+                          {/* Show payment status for completed trips */}
+                          {trip?.status === 'completed' && booking.status === 'accepted' && (
+                            <div style={{ marginTop: '8px' }}>
+                              {booking.paymentStatus === 'completed' ? (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500',
+                                  color: '#15803d',
+                                  backgroundColor: '#f0fdf4',
+                                  border: '1px solid #86efac',
+                                  borderRadius: '16px',
+                                  fontFamily: 'Inter, sans-serif',
+                                  display: 'inline-block'
+                                }}>
+                                  ✓ Pago completado
+                                </span>
+                              ) : booking.paymentStatus === 'pending' ? (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500',
+                                  color: '#92400e',
+                                  backgroundColor: '#fef3c7',
+                                  border: '1px solid #fcd34d',
+                                  borderRadius: '16px',
+                                  fontFamily: 'Inter, sans-serif',
+                                  display: 'inline-block'
+                                }}>
+                                  ⏳ Pago pendiente
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                         {getBookingStatusBadge(booking.status)}
                       </div>
@@ -820,35 +807,86 @@ export default function TripDetails() {
                         </p>
                       )}
                       
-                      {/* Report button for accepted bookings */}
+                      {/* Actions for accepted bookings */}
                       {booking.status === 'accepted' && (
-                        <button
-                          onClick={() => setShowReportModal({
-                            userId: booking.passengerId,
-                            userName: `${booking.passenger.firstName} ${booking.passenger.lastName}`
-                          })}
-                          style={{
-                            marginTop: '12px',
-                            padding: '6px 16px',
-                            fontSize: '0.85rem',
-                            fontWeight: 'normal',
-                            color: '#dc2626',
-                            backgroundColor: 'white',
-                            border: '1px solid #dc2626',
-                            borderRadius: '20px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            fontFamily: 'Inter, sans-serif'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#fef2f2';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'white';
-                          }}
-                        >
-                          Reportar pasajero
-                        </button>
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          marginTop: '12px',
+                          flexWrap: 'wrap'
+                        }}>
+                          {/* Show cash payment confirmation button only if trip is completed and payment is pending */}
+                          {trip?.status === 'completed' && booking.paymentStatus === 'pending' && booking.paymentMethod === 'cash' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setActionLoading(true);
+                                  await confirmCashPayment(booking.id);
+                                  setToast({
+                                    message: 'Pago en efectivo confirmado exitosamente',
+                                    type: 'success'
+                                  });
+                                  loadBookings();
+                                } catch (err) {
+                                  setToast({
+                                    message: err.message || 'Error al confirmar el pago',
+                                    type: 'error'
+                                  });
+                                } finally {
+                                  setActionLoading(false);
+                                }
+                              }}
+                              disabled={actionLoading}
+                              style={{
+                                padding: '6px 16px',
+                                fontSize: '0.85rem',
+                                fontWeight: 'normal',
+                                color: 'white',
+                                backgroundColor: actionLoading ? '#78716c' : '#22c55e',
+                                border: 'none',
+                                borderRadius: '20px',
+                                cursor: actionLoading ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s',
+                                fontFamily: 'Inter, sans-serif'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!actionLoading) e.target.style.backgroundColor = '#16a34a';
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!actionLoading) e.target.style.backgroundColor = '#22c55e';
+                              }}
+                            >
+                              {actionLoading ? 'Confirmando...' : 'Confirmar pago en efectivo'}
+                            </button>
+                          )}
+                          {/* Don't show duplicate payment status here - it's already shown above */}
+                          <button
+                            onClick={() => setShowReportModal({
+                              userId: booking.passengerId,
+                              userName: `${booking.passenger.firstName} ${booking.passenger.lastName}`
+                            })}
+                            style={{
+                              padding: '6px 16px',
+                              fontSize: '0.85rem',
+                              fontWeight: 'normal',
+                              color: '#dc2626',
+                              backgroundColor: 'white',
+                              border: '1px solid #dc2626',
+                              borderRadius: '20px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              fontFamily: 'Inter, sans-serif'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#fef2f2';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = 'white';
+                            }}
+                          >
+                            Reportar pasajero
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -869,24 +907,27 @@ export default function TripDetails() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 50,
+            zIndex: 100,
             padding: '16px'
           }}
           onClick={() => !actionLoading && setSelectedBooking(null)}
         >
           <div
+            className="modal-content-responsive"
             style={{
-              maxWidth: '500px',
+              maxWidth: 'clamp(280px, 90vw, 500px)',
               width: '100%',
               backgroundColor: 'white',
               borderRadius: '16px',
-              padding: '32px',
-              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+              padding: 'clamp(16px, 4vw, 32px)',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{
-              fontSize: '1.8rem',
+              fontSize: 'clamp(1.2rem, 4vw, 1.8rem)',
               fontWeight: 'normal',
               color: '#1c1917',
               marginBottom: '8px',
@@ -1102,13 +1143,73 @@ export default function TripDetails() {
 
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Global modal responsive styles */
+        .modal-content-responsive {
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content-responsive h2,
+          .modal-content-responsive h3 {
+            font-size: clamp(1rem, 4vw, 1.5rem) !important;
+          }
+          .modal-content-responsive {
+            padding: clamp(12px, 3vw, 16px) !important;
+          }
           .trip-details-grid {
             grid-template-columns: 1fr !important;
+            gap: 16px !important;
           }
           .trip-header-flex {
             flex-direction: column !important;
             align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .booking-request-card {
+            padding: 16px !important;
+          }
+          button {
+            width: 100% !important;
+            padding: 10px 16px !important;
+            font-size: 0.9rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .trip-details-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          .trip-header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 16px !important;
+          }
+          .booking-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .booking-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .trip-details-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .trip-details-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
           }
         }
       `}</style>

@@ -1,15 +1,14 @@
+// Modal de ban de publicación: permite a admin establecer o remover ban de publicación para conductores
 import { useState } from 'react';
 
-/**
- * Publish Ban Modal
- * Allows admin to set or remove publish ban for drivers
- */
 export default function PublishBanModal({ driverId, currentBanUntil, onCancel, onConfirm }) {
+  // Estado para fecha de expiración del ban, razón, envío y errores
   const [banUntil, setBanUntil] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Manejar envío: valida razón y que fecha de ban sea en el futuro si se proporciona
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -19,7 +18,7 @@ export default function PublishBanModal({ driverId, currentBanUntil, onCancel, o
       return;
     }
 
-    // If banUntil is provided, validate it's in the future
+    // Si se proporciona banUntil, validar que sea en el futuro
     if (banUntil) {
       const banDate = new Date(banUntil);
       if (banDate <= new Date()) {
@@ -30,7 +29,7 @@ export default function PublishBanModal({ driverId, currentBanUntil, onCancel, o
 
     setSubmitting(true);
     try {
-      // Convert to ISO string or null
+      // Convertir a string ISO o null
       const banUntilValue = banUntil ? new Date(banUntil).toISOString() : null;
       await onConfirm(banUntilValue, reason);
     } catch (err) {
@@ -216,6 +215,60 @@ export default function PublishBanModal({ driverId, currentBanUntil, onCancel, o
           </div>
         </form>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content {
+            padding: 20px 16px !important;
+            max-width: 95vw !important;
+            margin: 16px !important;
+          }
+          .modal-form {
+            gap: 16px !important;
+          }
+          input[type="date"], textarea {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .modal-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .modal-content {
+            padding: 24px 20px !important;
+            max-width: 90vw !important;
+          }
+          .modal-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .modal-content {
+            padding: 16px 20px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

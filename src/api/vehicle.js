@@ -1,22 +1,7 @@
+// Endpoints de vehículos: operaciones relacionadas con gestión de vehículos (solo para conductores)
 import client from './client';
 
-/**
- * Vehicle API endpoints
- */
-
-/**
- * Register a new vehicle for the current driver
- * @param {Object} vehicleData - Vehicle data
- * @param {string} vehicleData.licensePlate - License plate
- * @param {string} vehicleData.brand - Vehicle brand
- * @param {string} vehicleData.model - Vehicle model  
- * @param {string} vehicleData.color - Vehicle color
- * @param {number} vehicleData.year - Vehicle year
- * @param {number} vehicleData.capacity - Passenger capacity
- * @param {File} [vehicleData.vehiclePhoto] - Vehicle photo
- * @param {File} [vehicleData.soatPhoto] - SOAT document photo
- * @returns {Promise<Object>} - Vehicle data
- */
+// Registrar nuevo vehículo: crear nuevo vehículo para el conductor actual con fotos opcionales
 export async function registerVehicle(vehicleData) {
   const formData = new FormData();
   
@@ -42,22 +27,15 @@ export async function registerVehicle(vehicleData) {
   return response.data;
 }
 
-/**
- * Get current driver's vehicle
- * @returns {Promise<Object>} - Vehicle data
- */
+// Obtener vehículo: obtener información del vehículo del conductor actual
 export async function getMyVehicle() {
   const response = await client.get('/api/drivers/vehicle');
   return response.data;
 }
 
-/**
- * Update current driver's vehicle
- * @param {Object} updates - Vehicle updates
- * @returns {Promise<Object>} - Updated vehicle data
- */
+// Actualizar vehículo: actualizar información del vehículo del conductor actual (soporta fotos)
 export async function updateMyVehicle(updates) {
-  // If there are files, use FormData
+  // Si hay archivos, usar FormData para multipart/form-data
   if (updates.vehiclePhoto || updates.soatPhoto) {
     const formData = new FormData();
     
@@ -79,15 +57,12 @@ export async function updateMyVehicle(updates) {
     return response.data;
   }
 
-  // Otherwise, send JSON
+  // Solo texto: usar JSON para actualización sin archivos
   const response = await client.patch('/api/drivers/vehicle', updates);
   return response.data;
 }
 
-/**
- * Delete current driver's vehicle
- * @returns {Promise<void>}
- */
+// Eliminar vehículo: eliminar vehículo del conductor actual (requiere no tener viajes activos)
 export async function deleteMyVehicle() {
   await client.delete('/api/drivers/vehicle');
 }

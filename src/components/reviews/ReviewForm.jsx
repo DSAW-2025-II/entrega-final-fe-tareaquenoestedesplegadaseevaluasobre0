@@ -1,10 +1,7 @@
+// Componente de formulario de reseña: para crear y editar reseñas de viajes
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 
-/**
- * Review Form Component
- * For creating and editing reviews
- */
 export default function ReviewForm({ 
   tripId, 
   existingReview = null, 
@@ -18,8 +15,10 @@ export default function ReviewForm({
   const [tags, setTags] = useState(existingReview?.tags || []);
   const [selectedTag, setSelectedTag] = useState('');
 
+  // Etiquetas disponibles para reseñas
   const availableTags = ['Puntual', 'Seguro', 'Limpio', 'Comunicativo', 'Amable', 'Cómodo', 'Rápido', 'Económico'];
 
+  // Alternar etiqueta seleccionada (máximo 5)
   const handleTagToggle = (tag) => {
     if (tags.includes(tag)) {
       setTags(tags.filter(t => t !== tag));
@@ -28,6 +27,7 @@ export default function ReviewForm({
     }
   };
 
+  // Manejar envío del formulario
   const handleSubmit = (e) => {
     e.preventDefault();
     if (rating === 0) {
@@ -286,6 +286,58 @@ export default function ReviewForm({
           {loading ? 'Guardando...' : (existingReview ? 'Actualizar reseña' : 'Publicar reseña')}
         </button>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .rating-stars-container {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .tags-container {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .tag-button {
+            font-size: 0.85rem !important;
+            padding: 8px 12px !important;
+          }
+          textarea {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .form-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          textarea {
+            min-height: 80px !important;
+          }
+        }
+      `}</style>
     </form>
   );
 }

@@ -1,10 +1,8 @@
+// Modal de corrección de reserva: permite a admin seleccionar estado objetivo y proporcionar razón para corrección de reserva
 import { useState } from 'react';
 
-/**
- * Booking Correction Modal
- * Allows admin to select target state and provide reason for booking correction
- */
 export default function BookingCorrectionModal({ booking, onCancel, onConfirm }) {
+  // Estado para estado objetivo, razón, monto y razón de reembolso, envío y errores
   const [targetState, setTargetState] = useState('');
   const [reason, setReason] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
@@ -12,6 +10,7 @@ export default function BookingCorrectionModal({ booking, onCancel, onConfirm })
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Manejar envío: valida estado objetivo, razón y reembolso si se cancela
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -26,7 +25,7 @@ export default function BookingCorrectionModal({ booking, onCancel, onConfirm })
       return;
     }
 
-    // Validate refund if canceling
+    // Validar reembolso si se cancela
     if (targetState === 'canceled_by_platform') {
       if (refundAmount && (!refundReason || refundReason.trim().length < 5)) {
         setError('Si especificas un monto de reembolso, debes proporcionar una razón');
@@ -332,6 +331,63 @@ export default function BookingCorrectionModal({ booking, onCancel, onConfirm })
           </div>
         </form>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content {
+            padding: 20px 16px !important;
+            max-width: 95vw !important;
+            margin: 16px !important;
+          }
+          .modal-form {
+            gap: 16px !important;
+          }
+          select, input, textarea {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .modal-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+          .refund-section {
+            padding: 12px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .modal-content {
+            padding: 24px 20px !important;
+            max-width: 90vw !important;
+          }
+          .modal-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .modal-content {
+            padding: 16px 20px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

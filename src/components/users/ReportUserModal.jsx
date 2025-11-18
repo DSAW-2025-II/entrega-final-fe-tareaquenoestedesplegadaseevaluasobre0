@@ -1,5 +1,7 @@
+// Modal de reporte de usuario: permite reportar usuarios desde un viaje específico
 import { useState } from 'react';
 
+// Categorías de reporte disponibles
 const REPORT_CATEGORIES = [
   { value: 'abuse', label: 'Abuso' },
   { value: 'harassment', label: 'Acoso' },
@@ -21,6 +23,7 @@ export default function ReportUserModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Manejar envío del formulario de reporte
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -305,6 +308,60 @@ export default function ReportUserModal({
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content {
+            padding: 20px 16px !important;
+            max-width: 95vw !important;
+            margin: 16px !important;
+          }
+          .modal-form {
+            gap: 16px !important;
+          }
+          select, textarea {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .modal-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .modal-content {
+            padding: 24px 20px !important;
+            max-width: 90vw !important;
+          }
+          .modal-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .modal-content {
+            padding: 16px 20px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
         }
       `}</style>
     </div>

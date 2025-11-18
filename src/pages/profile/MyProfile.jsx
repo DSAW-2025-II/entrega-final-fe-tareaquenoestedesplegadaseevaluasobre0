@@ -1,15 +1,15 @@
+// Página de mi perfil: gestión de perfil de usuario (edición, cambio de contraseña, cambio de rol)
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import useAuthStore from '../../store/authStore';
 import { getMyProfile, toggleRole as toggleRoleApi, updateMyProfile } from '../../api/user';
-import { logout as logoutApi } from '../../api/auth';
 import { getImageUrl } from '../../utils/imageUrl';
-import RoleSwitch from '../../components/common/RoleSwitch';
-import logo from '../../assets/images/UniSabana Logo.png';
+import Navbar from '../../components/common/Navbar';
 import ChangePassword from './ChangePassword';
 import ReviewList from '../../components/reviews/ReviewList';
-import NotificationBell from '../../components/notifications/NotificationBell';
 
+// Obtener iniciales del nombre completo
 function getInitials(firstName, lastName) {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
 }
@@ -28,33 +28,23 @@ export default function MyProfile() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [navbarImageError, setNavbarImageError] = useState(false);
 
   const isDriver = user?.role === 'driver';
 
-  // Load profile data
+  // Cargar datos del perfil
   useEffect(() => {
     loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close profile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProfileMenu && !event.target.closest('.profile-menu-container')) {
-        setShowProfileMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProfileMenu]);
-
+  // Cargar perfil del usuario
   const loadProfile = async () => {
     try {
       setLoading(true);
-      setImageError(false); // Reset image error when loading new profile
+      setImageError(false); // Reiniciar error de imagen al cargar nuevo perfil
       const data = await getMyProfile();
       setProfile(data);
     } catch (err) {
@@ -65,6 +55,7 @@ export default function MyProfile() {
     }
   };
 
+  // Manejar carga de foto de perfil
   const handlePhotoUpload = async () => {
     if (!selectedFile) return;
 
@@ -77,20 +68,20 @@ export default function MyProfile() {
         profilePhoto: selectedFile,
       });
       
-      // Reset image error and preview before updating
+      // Reiniciar error de imagen y preview antes de actualizar
       setImageError(false);
       setNavbarImageError(false);
       setSelectedFile(null);
       setPreviewUrl(null);
       
-      // Update profile state
+      // Actualizar estado del perfil
       setProfile(updatedProfile);
       setUser(updatedProfile);
       setSuccess('Foto de perfil actualizada correctamente');
       
-      // Force a small delay to ensure state updates before image loads
+      // Forzar un pequeño retraso para asegurar actualizaciones de estado antes de cargar imagen
       setTimeout(() => {
-        // Reload profile to ensure we have the latest data from server
+        // Recargar perfil para asegurar que tenemos los datos más recientes del servidor
         loadProfile();
       }, 300);
     } catch (err) {
@@ -106,6 +97,7 @@ export default function MyProfile() {
     }
   };
 
+  // Manejar cambio de archivo seleccionado
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -156,6 +148,7 @@ export default function MyProfile() {
     }
   };
 
+
   if (loading && !profile) {
     return (
       <div style={{
@@ -187,359 +180,68 @@ export default function MyProfile() {
     );
   }
 
+  const AlertNotification = ({ type, message, onClose }) => (
+    <div className="notification-alert" style={{
+      position: 'fixed',
+      top: '80px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'calc(100% - 32px)',
+      maxWidth: '1280px',
+      zIndex: 99999,
+      backgroundColor: type === 'error' ? '#fef2f2' : '#f0fdf4',
+      border: `1px solid ${type === 'error' ? '#fca5a5' : '#86efac'}`,
+      borderRadius: '12px',
+      padding: '16px',
+      marginBottom: '24px',
+      display: 'flex',
+      alignItems: 'start',
+      gap: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      pointerEvents: 'auto'
+    }}>
+      {type === 'success' && <span style={{ color: '#16a34a', fontSize: '20px' }}>OK</span>}
+      <div style={{ flex: 1 }}>
+        <p style={{ 
+          color: type === 'error' ? '#991b1b' : '#15803d', 
+          fontSize: '14px', 
+          margin: 0 
+        }}>
+          {message}
+        </p>
+      </div>
+      <button
+        onClick={onClose}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: type === 'error' ? '#991b1b' : '#15803d',
+          cursor: 'pointer',
+          padding: '0',
+          fontSize: '18px',
+          lineHeight: '1'
+        }}
+      >
+        X
+      </button>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'white' }}>
-      {/* Navbar - Same as Dashboard */}
-      <header style={{
-        width: '100%',
-        borderBottom: '1px solid #e7e5e4',
-        backgroundColor: 'white',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          {/* Left: Logo + Text */}
-          <Link 
-            to="/dashboard" 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <img 
-              src={logo} 
-              alt="Wheels UniSabana Logo" 
-              style={{ 
-                height: '4rem', 
-                width: 'auto',
-                objectFit: 'contain'
-              }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'normal',
-              color: '#1c1917',
-              fontFamily: 'Inter, sans-serif'
-            }}>
-              Wheels UniSabana
-            </span>
-          </Link>
+      {/* Navbar */}
+      <Navbar activeLink="profile" />
 
-          {/* Center: Navigation Links */}
-          <nav style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '32px'
-          }}>
-            <Link
-              to="/my-trips"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Mis viajes
-            </Link>
-            
-            <Link
-              to="/reports"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Reportes
-            </Link>
-            
-            <Link
-              to="/search"
-              style={{
-                fontSize: '1rem',
-                fontWeight: '500',
-                color: '#1c1917',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                fontFamily: 'Inter, sans-serif'
-              }}
-              onMouseEnter={(e) => e.target.style.color = '#032567'}
-              onMouseLeave={(e) => e.target.style.color = '#1c1917'}
-            >
-              Buscar viajes
-            </Link>
-          </nav>
+      {/* Alerts - Rendered via Portal to body */}
+      {error && createPortal(
+        <AlertNotification type="error" message={error} onClose={() => setError(null)} />,
+        document.body
+      )}
 
-          {/* Right: Notifications + Role Status + Profile */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Notifications */}
-            {user && (
-              <NotificationBell />
-            )}
-            
-            {/* Role Switch - Only shows if user has vehicle (can switch roles) */}
-            {profile?.driver?.hasVehicle ? (
-              <RoleSwitch 
-                hasVehicle={profile.driver.hasVehicle} 
-                currentRole={user?.role || 'passenger'} 
-              />
-            ) : (
-              <div style={{
-                padding: '6px 16px',
-                backgroundColor: isDriver ? '#032567' : 'white',
-                color: isDriver ? 'white' : '#032567',
-                border: '2px solid #032567',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                fontFamily: 'Inter, sans-serif'
-              }}>
-                {isDriver ? 'Conductor' : 'Pasajero'}
-              </div>
-            )}
-
-            {/* Profile button with menu */}
-            <div className="profile-menu-container" style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{
-                  height: '3rem',
-                  width: '3rem',
-                  borderRadius: '50%',
-                  backgroundColor: '#032567',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontFamily: 'Inter, sans-serif',
-                  overflow: 'hidden',
-                  padding: 0
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                title={`${user?.firstName} ${user?.lastName}`}
-              >
-                {user?.profilePhotoUrl && !navbarImageError ? (
-                  <img
-                    src={`${getImageUrl(user.profilePhotoUrl)}?t=${user.updatedAt || Date.now()}`}
-                    alt={`${user?.firstName} ${user?.lastName}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      borderRadius: '50%'
-                    }}
-                    onError={() => setNavbarImageError(true)}
-                    onLoad={() => setNavbarImageError(false)}
-                  />
-                ) : (
-                  <span>{getInitials(user?.firstName, user?.lastName)}</span>
-                )}
-              </button>
-
-              {/* Dropdown menu */}
-              {showProfileMenu && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  marginTop: '8px',
-                  width: '220px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  border: '1px solid #e7e5e4',
-                  padding: '8px 0',
-                  zIndex: 20
-                }}>
-                  {/* User info */}
-                  <div style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #e7e5e4',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}>
-                    {/* Profile photo in menu */}
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      backgroundColor: '#032567',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      flexShrink: 0,
-                      overflow: 'hidden'
-                    }}>
-                      {user?.profilePhotoUrl && !navbarImageError ? (
-                        <img
-                          src={`${getImageUrl(user.profilePhotoUrl)}?t=${user.updatedAt || Date.now()}`}
-                          alt={`${user?.firstName} ${user?.lastName}`}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                          onError={() => setNavbarImageError(true)}
-                          onLoad={() => setNavbarImageError(false)}
-                        />
-                      ) : (
-                        <span>{getInitials(user?.firstName, user?.lastName)}</span>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: '#1c1917',
-                        margin: 0,
-                        fontFamily: 'Inter, sans-serif',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p style={{
-                        fontSize: '0.75rem',
-                        color: '#57534e',
-                        margin: '4px 0 0 0',
-                        fontFamily: 'Inter, sans-serif',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {user?.corporateEmail}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Menu items */}
-                  <div style={{ padding: '4px 0' }}>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/profile');
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        textAlign: 'left',
-                        fontSize: '0.9rem',
-                        color: '#1c1917',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        fontFamily: 'Inter, sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Mi perfil
-                    </button>
-
-                    {isDriver && (
-                      <button
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          navigate('/driver/my-vehicle');
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          textAlign: 'left',
-                          fontSize: '0.9rem',
-                          color: '#1c1917',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s',
-                          fontFamily: 'Inter, sans-serif',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f4'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                      >
-                        Mi vehículo
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Logout */}
-                  <div style={{
-                    borderTop: '1px solid #e7e5e4',
-                    paddingTop: '4px'
-                  }}>
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        textAlign: 'left',
-                        fontSize: '0.9rem',
-                        color: '#dc2626',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        fontFamily: 'Inter, sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                    >
-                      Cerrar sesión
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {success && createPortal(
+        <AlertNotification type="success" message={success} onClose={() => setSuccess(null)} />,
+        document.body
+      )}
 
       {/* Main Content */}
       <div style={{
@@ -558,75 +260,7 @@ export default function MyProfile() {
           Tu perfil
         </h1>
 
-        {/* Alerts */}
-        {error && (
-          <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fca5a5',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'start',
-            gap: '12px'
-          }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: '#991b1b', fontSize: '14px', margin: 0 }}>
-                {error}
-              </p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#991b1b',
-                cursor: 'pointer',
-                padding: '0',
-                fontSize: '18px',
-                lineHeight: '1'
-              }}
-            >
-              X
-            </button>
-          </div>
-        )}
-
-        {success && (
-          <div style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #86efac',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'start',
-            gap: '12px'
-          }}>
-            <span style={{ color: '#16a34a', fontSize: '20px' }}>OK</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ color: '#15803d', fontSize: '14px', margin: 0 }}>
-                {success}
-              </p>
-            </div>
-            <button
-              onClick={() => setSuccess(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#15803d',
-                cursor: 'pointer',
-                padding: '0',
-                fontSize: '18px',
-                lineHeight: '1'
-              }}
-            >
-              X
-            </button>
-          </div>
-        )}
-
-        {/* Profile Photo and Information - Single Card */}
+        {/* Profile Content */}
         <div style={{
           backgroundColor: 'white',
           padding: 'clamp(20px, 4vw, 40px)'
@@ -1103,23 +737,25 @@ export default function MyProfile() {
           <div style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 50,
+            zIndex: 100,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '16px',
             backgroundColor: 'rgba(0, 0, 0, 0.5)'
           }}>
-            <div style={{
-              maxWidth: '28rem',
+            <div className="modal-content-responsive" style={{
+              maxWidth: 'clamp(280px, 90vw, 28rem)',
               width: '100%',
               backgroundColor: 'white',
               borderRadius: '16px',
-              padding: '24px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              padding: 'clamp(16px, 4vw, 24px)',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}>
               <h3 style={{
-                fontSize: '1.25rem',
+                fontSize: 'clamp(1rem, 3vw, 1.25rem)',
                 fontWeight: '600',
                 color: '#1c1917',
                 marginBottom: '8px',
@@ -1193,15 +829,134 @@ export default function MyProfile() {
       </div>
       {/* Responsive Styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .profile-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: flex !important;
+          }
           .form-grid-2cols {
             grid-template-columns: 1fr !important;
           }
           .form-actions-flex {
             flex-direction: column !important;
+            gap: 12px !important;
           }
           .form-actions-flex button {
             width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+          .profile-header-flex {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            gap: 16px !important;
+          }
+          .profile-photo {
+            width: 120px !important;
+            height: 120px !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .profile-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: flex !important;
+          }
+          .form-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .form-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+          .profile-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+          }
+        }
+        
+        /* Desktop - 769px and above */
+        @media (min-width: 769px) {
+          .mobile-nav {
+            display: none !important;
+          }
+          .mobile-menu-button {
+            display: none !important;
+          }
+        }
+        
+        /* Global modal responsive styles */
+        .modal-content-responsive {
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        @media (max-width: 480px) {
+          .modal-content-responsive h2,
+          .modal-content-responsive h3 {
+            font-size: clamp(1rem, 4vw, 1.5rem) !important;
+          }
+          .modal-content-responsive {
+            padding: clamp(12px, 3vw, 16px) !important;
+          }
+        }
+        
+        /* Tablet Portrait - 769px to 1024px */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .profile-info-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .profile-header-flex {
+            gap: 16px !important;
+          }
+          .profile-photo {
+            width: 100px !important;
+            height: 100px !important;
+          }
+        }
+        
+        /* Notification alerts positioning */
+        .notification-alert {
+          position: fixed !important;
+          z-index: 9999 !important;
+        }
+        
+        /* Desktop - align with content */
+        @media (min-width: 769px) {
+          .notification-alert {
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            max-width: 1280px !important;
+            width: calc(100% - 48px) !important;
+            padding-left: clamp(16px, 3vw, 24px) !important;
+            padding-right: clamp(16px, 3vw, 24px) !important;
+          }
+        }
+        
+        /* Mobile - full width with padding */
+        @media (max-width: 768px) {
+          .notification-alert {
+            left: 16px !important;
+            right: 16px !important;
+            width: calc(100% - 32px) !important;
+            max-width: none !important;
+            transform: none !important;
           }
         }
       `}</style>

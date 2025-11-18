@@ -1,20 +1,7 @@
+// Endpoints de administración: operaciones administrativas del sistema (solo para admins)
 import client from './client';
 
-// Admin actions API helpers
-
-/**
- * List users with filters and pagination
- * @param {Object} filters - Filter options
- * @param {string} [filters.role] - Filter by role (passenger, driver, admin)
- * @param {string} [filters.status] - Filter by status (active, suspended)
- * @param {string} [filters.search] - Search by name or email
- * @param {string} [filters.createdFrom] - Filter by creation date from (ISO string)
- * @param {string} [filters.createdTo] - Filter by creation date to (ISO string)
- * @param {number} [filters.page=1] - Page number
- * @param {number} [filters.pageSize=25] - Items per page
- * @param {string} [filters.sort=-createdAt] - Sort field and direction
- * @returns {Promise<Object>} - { items, page, pageSize, total, totalPages }
- */
+// Listar usuarios: obtener lista de usuarios con filtros y paginación para administradores
 export async function listUsers(filters = {}) {
   const params = new URLSearchParams();
   if (filters.role) params.append('role', filters.role);
@@ -30,20 +17,7 @@ export async function listUsers(filters = {}) {
   return response.data;
 }
 
-/**
- * List trips with filters and pagination
- * @param {Object} filters - Filter options
- * @param {string|string[]} [filters.status] - Filter by status
- * @param {string} [filters.driverId] - Filter by driver ID
- * @param {string} [filters.from] - Filter by origin text
- * @param {string} [filters.to] - Filter by destination text
- * @param {string} [filters.departureFrom] - Filter by departure date from (ISO string)
- * @param {string} [filters.departureTo] - Filter by departure date to (ISO string)
- * @param {number} [filters.page=1] - Page number
- * @param {number} [filters.pageSize=25] - Items per page
- * @param {string} [filters.sort=-departureAt] - Sort field and direction
- * @returns {Promise<Object>} - { items, page, pageSize, total, totalPages }
- */
+// Listar viajes: obtener lista de viajes con filtros y paginación para administradores
 export async function listTrips(filters = {}) {
   const params = new URLSearchParams();
   if (filters.status) {
@@ -66,20 +40,7 @@ export async function listTrips(filters = {}) {
   return response.data;
 }
 
-/**
- * List bookings with filters and pagination
- * @param {Object} filters - Filter options
- * @param {string} [filters.tripId] - Filter by trip ID
- * @param {string} [filters.passengerId] - Filter by passenger ID
- * @param {string|string[]} [filters.status] - Filter by status
- * @param {boolean} [filters.paid] - Filter by payment status
- * @param {string} [filters.createdFrom] - Filter by creation date from (ISO string)
- * @param {string} [filters.createdTo] - Filter by creation date to (ISO string)
- * @param {number} [filters.page=1] - Page number
- * @param {number} [filters.pageSize=25] - Items per page
- * @param {string} [filters.sort=-createdAt] - Sort field and direction
- * @returns {Promise<Object>} - { items, page, pageSize, total, totalPages }
- */
+// Listar reservas: obtener lista de reservas con filtros y paginación para administradores
 export async function listBookings(filters = {}) {
   const params = new URLSearchParams();
   if (filters.tripId) params.append('tripId', filters.tripId);
@@ -102,18 +63,20 @@ export async function listBookings(filters = {}) {
   return response.data;
 }
 
+// Suspender usuario: suspender o reactivar un usuario con motivo para auditoría
 export async function suspendUser(userId, suspend, reason) {
-  // suspend: true => suspend, false => unsuspend
   const action = suspend ? 'suspend' : 'unsuspend';
   const response = await client.patch(`/admin/users/${userId}/suspension`, { action, reason });
   return response.data;
 }
 
+// Cancelar viaje forzado: cancelar un viaje administrativamente con motivo
 export async function forceCancelTrip(tripId, reason) {
   const response = await client.post(`/admin/trips/${tripId}/force-cancel`, { reason });
   return response.data;
 }
 
+// Corregir estado de reserva: corregir manualmente el estado de una reserva con motivo y reembolso opcional
 export async function correctBookingState(bookingId, targetState, reason, refund) {
   const body = { targetState, reason };
   if (refund) body.refund = refund;
@@ -121,34 +84,25 @@ export async function correctBookingState(bookingId, targetState, reason, refund
   return response.data;
 }
 
+// Establecer ban de publicación: prohibir a un conductor publicar viajes temporalmente hasta fecha específica
 export async function setDriverPublishBan(driverId, banUntil, reason) {
-  // banUntil: ISO date string or null to remove ban
   const response = await client.patch(`/admin/drivers/${driverId}/publish-ban`, { banUntil, reason });
   return response.data;
 }
 
+// Crear URL de subida: generar URL firmada para subir evidencia de moderación
 export async function createModerationUploadUrl(meta) {
   const response = await client.post('/admin/moderation/evidence/upload-url', meta);
   return response.data;
 }
 
+// Crear nota de moderación: crear nota de moderación asociada a una entidad (usuario, reseña, etc.)
 export async function createModerationNote(entity, entityId, category, reason, evidence) {
   const response = await client.post('/admin/moderation/notes', { entity, entityId, category, reason, evidence });
   return response.data;
 }
 
-/**
- * List reports with filters and pagination
- * @param {Object} filters - Filter options
- * @param {string} [filters.status] - Filter by status (pending, reviewed, resolved)
- * @param {string} [filters.category] - Filter by category
- * @param {string} [filters.reportedUserId] - Filter by reported user ID
- * @param {string} [filters.reporterId] - Filter by reporter ID
- * @param {number} [filters.page=1] - Page number
- * @param {number} [filters.pageSize=25] - Items per page
- * @param {string} [filters.sort=-createdAt] - Sort field and direction
- * @returns {Promise<Object>} - { items, page, pageSize, total, totalPages }
- */
+// Listar reportes de usuarios: obtener reportes de usuarios con filtros y paginación
 export async function listReports(filters = {}) {
   const params = new URLSearchParams();
   if (filters.status) params.append('status', filters.status);
@@ -163,25 +117,25 @@ export async function listReports(filters = {}) {
   return response.data;
 }
 
-/**
- * Update report status
- * @param {string} reportId - Report ID
- * @param {string} status - New status (pending, reviewed, resolved)
- * @param {string} [reason] - Optional reason for status change
- * @returns {Promise<Object>} - Updated report data
- */
+// Listar reportes de reseñas: obtener reportes de reseñas con filtros y paginación
+export async function listReviewReports(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.category) params.append('category', filters.category);
+  params.append('page', filters.page || 1);
+  params.append('pageSize', filters.pageSize || 25);
+  if (filters.sort) params.append('sort', filters.sort);
+  
+  const response = await client.get(`/admin/review-reports?${params.toString()}`);
+  return response.data;
+}
+
+// Actualizar estado de reporte: cambiar estado de un reporte (resuelto, rechazado, etc.) con motivo
 export async function updateReportStatus(reportId, status, reason) {
   const response = await client.patch(`/admin/reports/${reportId}/status`, { status, reason });
   return response.data;
 }
 
-/**
- * Send message to reported user
- * @param {string} reportId - Report ID
- * @param {string} title - Message title
- * @param {string} message - Message content
- * @returns {Promise<Object>} - Response data
- */
+// Enviar mensaje: enviar mensaje de notificación al usuario reportado desde un reporte específico
 export async function sendMessageToReportedUser(reportId, title, message) {
   const response = await client.post(`/admin/reports/${reportId}/send-message`, { title, message });
   return response.data;

@@ -1,3 +1,4 @@
+// Modal de envío de mensaje: permite a los administradores enviar mensajes a usuarios reportados
 import { useState } from 'react';
 
 export default function SendMessageModal({ 
@@ -13,7 +14,7 @@ export default function SendMessageModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Pre-fill message with report information if available
+  // Pre-llenar mensaje con información del reporte si está disponible
   const getDefaultMessage = () => {
     let defaultMessage = `Hola ${userName},\n\n`;
     
@@ -45,6 +46,7 @@ export default function SendMessageModal({
     return defaultMessage;
   };
 
+  // Manejar envío del formulario de mensaje
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -379,6 +381,60 @@ export default function SendMessageModal({
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Responsive Styles */}
+      <style>{`
+        /* Mobile Vertical (portrait) - max-width 480px */
+        @media (max-width: 480px) {
+          .modal-content {
+            padding: 20px 16px !important;
+            max-width: 95vw !important;
+            margin: 16px !important;
+          }
+          .modal-form {
+            gap: 16px !important;
+          }
+          input, textarea {
+            font-size: 14px !important;
+            padding: 10px 14px !important;
+          }
+          .modal-actions-flex {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            width: 100% !important;
+            padding: 12px 16px !important;
+            font-size: 1rem !important;
+          }
+        }
+        
+        /* Mobile Horizontal (landscape) - 481px to 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .modal-content {
+            padding: 24px 20px !important;
+            max-width: 90vw !important;
+          }
+          .modal-actions-flex {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .modal-actions-flex button {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+          }
+        }
+        
+        /* Orientation-specific adjustments */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .modal-content {
+            padding: 16px 20px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+          }
         }
       `}</style>
     </div>
