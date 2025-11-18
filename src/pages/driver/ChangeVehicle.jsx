@@ -105,8 +105,21 @@ export default function ChangeVehicle() {
       // Actualizar vehículo (el backend validará que la placa no esté duplicada)
       await updateMyVehicle(updates);
 
+      // Limpiar previews antes de navegar
+      if (vehiclePreview) {
+        URL.revokeObjectURL(vehiclePreview);
+        setVehiclePreview(null);
+      }
+      if (soatPreview) {
+        URL.revokeObjectURL(soatPreview);
+        setSoatPreview(null);
+      }
+      setVehiclePhoto(null);
+      setSoatPhoto(null);
+
       // Redirigir a detalles del vehículo después de la actualización exitosa
-      navigate('/driver/my-vehicle');
+      // Agregar parámetro de caché para forzar recarga
+      navigate(`/driver/my-vehicle?refresh=${Date.now()}`);
     } catch (err) {
       if (err.code === 'same_plate') {
         setError('La nueva placa debe ser diferente a la placa actual de tu vehículo');

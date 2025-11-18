@@ -46,7 +46,11 @@ export default function MyProfile() {
       setLoading(true);
       setImageError(false); // Reiniciar error de imagen al cargar nuevo perfil
       const data = await getMyProfile();
-      setProfile(data);
+      // Agregar timestamp para forzar recarga de imagen
+      setProfile({
+        ...data,
+        _imageCacheKey: Date.now() // Clave de caché única para forzar recarga
+      });
     } catch (err) {
       console.error('[MyProfile] Error loading profile:', err);
       setError('Error al cargar el perfil: ' + (err.message || 'Error desconocido'));
@@ -71,12 +75,21 @@ export default function MyProfile() {
       // Reiniciar error de imagen y preview antes de actualizar
       setImageError(false);
       setNavbarImageError(false);
+      
+      // Limpiar preview URL para liberar memoria
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setSelectedFile(null);
       setPreviewUrl(null);
       
-      // Actualizar estado del perfil
-      setProfile(updatedProfile);
-      setUser(updatedProfile);
+      // Actualizar estado del perfil con nuevo timestamp para forzar recarga de imagen
+      const profileWithCacheKey = {
+        ...updatedProfile,
+        _imageCacheKey: Date.now() // Clave de caché única para forzar recarga
+      };
+      setProfile(profileWithCacheKey);
+      setUser(profileWithCacheKey);
       setSuccess('Foto de perfil actualizada correctamente');
       
       // Forzar un pequeño retraso para asegurar actualizaciones de estado antes de cargar imagen
@@ -283,9 +296,10 @@ export default function MyProfile() {
                 <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : profile?.profilePhotoUrl && !imageError ? (
                 <img 
-                  src={`${getImageUrl(profile.profilePhotoUrl)}?t=${profile.updatedAt || Date.now()}`}
+                  src={`${getImageUrl(profile.profilePhotoUrl)}?t=${profile._imageCacheKey || profile.updatedAt || Date.now()}`}
                   alt="Profile" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  key={`profile-${profile._imageCacheKey || profile.updatedAt || Date.now()}`}
                   onError={() => {
                     // If image fails to load, show initials instead
                     setImageError(true);

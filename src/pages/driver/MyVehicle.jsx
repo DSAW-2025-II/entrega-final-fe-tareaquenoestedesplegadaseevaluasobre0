@@ -38,6 +38,18 @@ export default function MyVehicle() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recargar vehículo cuando cambia el parámetro de refresh en la URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh')) {
+      // Limpiar el parámetro de la URL
+      window.history.replaceState({}, '', '/driver/my-vehicle');
+      // Recargar vehículo con nuevo timestamp
+      loadVehicle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [window.location.search]);
+
   // Cerrar menú de perfil al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -57,7 +69,11 @@ export default function MyVehicle() {
       console.log('[MyVehicle] Loading vehicle...');
       const data = await getMyVehicle();
       console.log('[MyVehicle] Vehicle loaded:', data);
-      setVehicle(data);
+      // Agregar timestamp para forzar recarga de imágenes
+      setVehicle({
+        ...data,
+        _imageCacheKey: Date.now() // Clave de caché única para forzar recarga
+      });
     } catch (err) {
       console.error('[MyVehicle] Error loading vehicle:', err);
       if (err.status === 404) {
@@ -290,13 +306,14 @@ export default function MyVehicle() {
                 }}>
                   {vehicle?.vehiclePhotoUrl ? (
                     <img 
-                      src={getImageUrl(vehicle.vehiclePhotoUrl)} 
+                      src={`${getImageUrl(vehicle.vehiclePhotoUrl)}?t=${vehicle._imageCacheKey || vehicle.updatedAt || Date.now()}`}
                       alt="Vehicle" 
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover'
                       }}
+                      key={`vehicle-${vehicle._imageCacheKey || vehicle.updatedAt || Date.now()}`}
                     />
                   ) : (
                     <div style={{
@@ -349,13 +366,14 @@ export default function MyVehicle() {
                 }}>
                   {vehicle?.soatPhotoUrl ? (
                     <img 
-                      src={getImageUrl(vehicle.soatPhotoUrl)} 
+                      src={`${getImageUrl(vehicle.soatPhotoUrl)}?t=${vehicle._imageCacheKey || vehicle.updatedAt || Date.now()}`}
                       alt="SOAT" 
                       style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover'
                       }}
+                      key={`soat-${vehicle._imageCacheKey || vehicle.updatedAt || Date.now()}`}
                     />
                   ) : (
                     <div style={{
