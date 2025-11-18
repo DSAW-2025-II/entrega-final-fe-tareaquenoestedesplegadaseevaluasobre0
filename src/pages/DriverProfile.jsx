@@ -28,6 +28,23 @@ export default function DriverProfile() {
     console.log('[DriverProfile] params object:', params);
     console.log('[DriverProfile] window.location.pathname:', window.location.pathname);
     
+    // Función auxiliar para normalizar el ID (convierte a string y valida formato ObjectId)
+    const normalizeId = (id) => {
+      if (!id) return null;
+      
+      // Convertir a string si es necesario
+      const idStr = String(id).trim();
+      
+      // Validar que sea un ObjectId válido de MongoDB (24 caracteres hexadecimales)
+      const objectIdPattern = /^[a-f\d]{24}$/i;
+      if (!objectIdPattern.test(idStr)) {
+        console.warn('[DriverProfile] Invalid driverId format:', idStr);
+        return null;
+      }
+      
+      return idStr;
+    };
+    
     // Intentar múltiples formas de obtener driverId
     let extractedDriverId = params?.driverId;
     
@@ -37,11 +54,14 @@ export default function DriverProfile() {
       extractedDriverId = pathMatch ? pathMatch[1] : null;
     }
     
+    // Normalizar el ID
+    extractedDriverId = normalizeId(extractedDriverId);
+    
     console.log('[DriverProfile] extractedDriverId:', extractedDriverId);
     
     if (!extractedDriverId) {
-      console.error('[DriverProfile] driverId is undefined!');
-      setError('ID del conductor no válido');
+      console.error('[DriverProfile] driverId is undefined or invalid format!');
+      setError('ID del conductor no válido. El formato debe ser un ObjectId de MongoDB válido.');
       setLoading(false);
       return;
     }
@@ -112,14 +132,24 @@ export default function DriverProfile() {
           message: reviewsErr.message
         });
         
-        // If it's a 404, the driver might not exist
-        if (reviewsErr.status === 404) {
-          setError('Conductor no encontrado');
+        // Si es un error de validación, el driverId podría estar mal formateado
+        if (reviewsErr.code === 'invalid_schema' || reviewsErr.message?.includes('Validation failed')) {
+          console.error('[DriverProfile] Validation error - driverId format issue:', finalDriverId);
+          setError('ID del conductor no válido. Por favor, intenta nuevamente.');
+          setLoading(false);
           return;
         }
         
-        // For other errors, continue and try fallback
-        setError(`Error al cargar reseñas: ${reviewsErr.message || 'Error desconocido'}`);
+        // If it's a 404, the driver might not exist
+        if (reviewsErr.status === 404) {
+          // No establecer error aquí, solo continuar sin reseñas
+          console.warn('[DriverProfile] Driver not found (404), continuing without reviews');
+          reviewsData = { items: [], total: 0, driver: null, vehicle: null };
+        } else {
+          // Para otros errores, continuar sin reseñas pero mostrar el perfil
+          console.warn('[DriverProfile] Error loading reviews, continuing without reviews:', reviewsErr.message);
+          reviewsData = { items: [], total: 0, driver: null, vehicle: null };
+        }
       }
 
       setRatings(ratingsData);

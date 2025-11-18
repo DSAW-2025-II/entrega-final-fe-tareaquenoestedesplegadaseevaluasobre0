@@ -14,6 +14,38 @@ function getInitials(firstName, lastName) {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
 }
 
+// Función auxiliar para extraer el ID del conductor de manera segura desde un objeto de viaje
+function extractDriverId(trip) {
+  if (!trip) return null;
+  
+  // Primero intentar driverId directo
+  if (trip.driverId) {
+    const id = trip.driverId;
+    // Si es un objeto, extraer _id o id
+    if (typeof id === 'object' && id !== null) {
+      return id._id?.toString() || id.id?.toString() || null;
+    }
+    return String(id);
+  }
+  
+  // Si no, intentar desde driver.id
+  if (trip.driver?.id) {
+    const id = trip.driver.id;
+    // Si es un objeto, extraer _id o id
+    if (typeof id === 'object' && id !== null) {
+      return id._id?.toString() || id.id?.toString() || null;
+    }
+    return String(id);
+  }
+  
+  // Si no, intentar desde driver._id
+  if (trip.driver?._id) {
+    return String(trip.driver._id);
+  }
+  
+  return null;
+}
+
 export default function SearchTrips() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -1335,35 +1367,40 @@ export default function SearchTrips() {
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    {(selectedTrip.driverId || selectedTrip.driver?.id) ? (
-                      <Link
-                        to={`/drivers/${selectedTrip.driverId || selectedTrip.driver.id}`}
-                        style={{
+                    {(() => {
+                      const driverId = extractDriverId(selectedTrip);
+                      
+                      return driverId ? (
+                        <Link
+                          to={`/drivers/${driverId}`}
+                          style={{
+                            fontSize: '1.2rem',
+                            fontWeight: '500',
+                            color: '#032567',
+                            margin: '0 0 4px 0',
+                            fontFamily: 'Inter, sans-serif',
+                            textDecoration: 'none',
+                            display: 'block',
+                            transition: 'color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.color = '#1A6EFF'}
+                          onMouseLeave={(e) => e.target.style.color = '#032567'}
+                        >
+                          {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName} →
+                        </Link>
+                      ) : (
+                        <p style={{
                           fontSize: '1.2rem',
                           fontWeight: '500',
-                          color: '#032567',
+                          color: '#1c1917',
                           margin: '0 0 4px 0',
-                          fontFamily: 'Inter, sans-serif',
-                          textDecoration: 'none',
-                          display: 'block',
-                          transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.color = '#1A6EFF'}
-                        onMouseLeave={(e) => e.target.style.color = '#032567'}
-                      >
-                        {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName} →
-                      </Link>
-                    ) : (
-                      <p style={{
-                        fontSize: '1.2rem',
-                        fontWeight: '500',
-                        color: '#1c1917',
-                        margin: '0 0 4px 0',
-                        fontFamily: 'Inter, sans-serif'
-                      }}>
-                        {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName}
-                      </p>
-                    )}
+                          fontFamily: 'Inter, sans-serif'
+                        }}>
+                          {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName}
+                        </p>
+                      );
+                    })()}
+                  </div>
                     {selectedTrip.vehicle && (
                       <p style={{
                         fontSize: '0.9rem',
@@ -1404,7 +1441,12 @@ export default function SearchTrips() {
               </button>
               
               {/* Only show booking button if user is not the driver */}
-              {(selectedTrip.driverId !== user?.id && selectedTrip.driver?.id !== user?.id) && (
+              {(() => {
+                const tripDriverId = extractDriverId(selectedTrip);
+                const userId = user?.id?.toString() || user?._id?.toString();
+                
+                return tripDriverId && tripDriverId !== userId;
+              })() && (
                 <button
                   onClick={handleRequestBooking}
                   style={{
