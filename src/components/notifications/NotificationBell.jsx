@@ -15,6 +15,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false); // Cargando notificaciones
   const dropdownRef = useRef(null); // Referencia al dropdown para detectar clics fuera
   const buttonRef = useRef(null); // Referencia al botón para posicionar dropdown
+  const dropdownContentRef = useRef(null); // Referencia al contenido del dropdown
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 }); // Posición del dropdown
 
   // Obtener notificaciones del servidor
@@ -41,36 +42,64 @@ export default function NotificationBell() {
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      // Verificar si el clic fue fuera del dropdown y del botón
+      const clickedInDropdown = dropdownContentRef.current?.contains(event.target);
+      const clickedInButton = buttonRef.current?.contains(event.target);
+      const isOverlayClick = event.target.classList?.contains('notification-overlay');
+      
+      // Solo cerrar si el clic fue fuera del dropdown, fuera del botón, y no fue en el overlay
+      if (!clickedInDropdown && !clickedInButton && !isOverlayClick) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isOpen]);
 
   // Marcar notificaciones como leídas
   const handleMarkAsRead = async (notificationIds) => {
     try {
       await markNotificationsAsRead(notificationIds);
-      await fetchNotifications(); // Refrescar lista
+      // Refrescar lista después de marcar como leídas
+      await fetchNotifications();
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      console.error('[NotificationBell] Error marking notifications as read:', error);
+      throw error; // Re-lanzar para que el llamador pueda manejar el error
     }
   };
 
   // Marcar todas como leídas
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = async (event) => {
+    // Prevenir que el evento se propague y cierre el dropdown
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
     if (unreadIds.length > 0) {
-      await handleMarkAsRead(unreadIds);
+      try {
+        await handleMarkAsRead(unreadIds);
+        // Refrescar notificaciones después de marcar como leídas
+        await fetchNotifications();
+      } catch (error) {
+        console.error('[NotificationBell] Error marking all as read:', error);
+      }
     }
+  };
+
+  // Función auxiliar para extraer el ID de manera segura (maneja strings, objetos, etc.)
+  const extractId = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value.id) return value.id;
+    if (typeof value === 'object' && value._id) return value._id.toString();
+    return String(value);
   };
 
   // Obtener ruta de navegación según el tipo de notificación
@@ -78,30 +107,43 @@ export default function NotificationBell() {
     const { type, data } = notification;
     const isDriver = user?.role === 'driver';
 
+    // Log para debug
+    console.log('[NotificationBell] Getting path for notification:', { type, data, isDriver });
+
+    // Extraer IDs de manera segura
+    const tripId = data?.tripId ? extractId(data.tripId) : null;
+    const bookingId = data?.bookingId ? extractId(data.bookingId) : null;
+
     switch (type) {
       case 'booking.new':
         // Nueva solicitud de reserva - para conductores
-        if (data?.tripId) {
-          return `/driver/trips/${data.tripId}`;
+        // Navegar directamente a los detalles del viaje donde está la reserva
+        if (tripId) {
+          return `/driver/trips/${tripId}`;
         }
+        // Si no hay tripId, ir a solicitudes de reserva
         return '/driver/booking-requests';
 
       case 'booking.accepted':
         // Reserva aceptada - para pasajeros
+        // Navegar a mis viajes donde se mostrará la reserva
         return '/my-trips';
 
       case 'booking.declined':
+      case 'booking.declined_by_driver':
         // Reserva rechazada - para pasajeros
         return '/my-trips';
 
       case 'booking.canceled':
+      case 'booking_canceled':
         // Reserva cancelada - para pasajeros
         return '/my-trips';
 
       case 'booking.canceled_by_passenger':
         // Reserva cancelada por pasajero - para conductores
-        if (data?.tripId) {
-          return `/driver/trips/${data.tripId}`;
+        // Navegar a los detalles del viaje
+        if (tripId) {
+          return `/driver/trips/${tripId}`;
         }
         return '/driver/booking-requests';
 
@@ -111,21 +153,41 @@ export default function NotificationBell() {
 
       case 'trip.reminder':
         // Recordatorio de viaje - para conductores y pasajeros
-        if (isDriver && data?.tripId) {
-          return `/driver/trips/${data.tripId}`;
+        if (tripId) {
+          if (isDriver) {
+            return `/driver/trips/${tripId}`;
+          } else {
+            return '/my-trips'; // Pasajeros ven sus reservas
+          }
         }
-        return '/my-trips';
+        return isDriver ? '/my-trips' : '/my-trips';
+
+      case 'driver.verification.reminder':
+        // Recordatorio de verificación de conductor
+        return '/driver/verification';
 
       default:
         // Default navigation based on role
-        return isDriver ? '/driver/trips' : '/my-trips';
+        console.warn('[NotificationBell] Unknown notification type:', type);
+        return isDriver ? '/my-trips' : '/my-trips';
     }
   };
 
-  const handleNotificationClick = async (notification) => {
+  const handleNotificationClick = async (notification, event) => {
+    // Prevenir propagación del evento para evitar que el overlay lo capture
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     // Mark as read if unread
     if (!notification.isRead) {
-      await handleMarkAsRead([notification.id]);
+      try {
+        await handleMarkAsRead([notification.id]);
+      } catch (error) {
+        console.error('[NotificationBell] Error marking notification as read:', error);
+        // Continuar con la navegación aunque falle marcar como leída
+      }
     }
 
     // Close dropdown
@@ -133,7 +195,12 @@ export default function NotificationBell() {
 
     // Navigate to relevant page
     const path = getNotificationPath(notification);
-    navigate(path);
+    console.log('[NotificationBell] Navigating to:', path);
+    
+    // Usar setTimeout para asegurar que el dropdown se cierre antes de navegar
+    setTimeout(() => {
+      navigate(path);
+    }, 100);
   };
 
   return (
@@ -166,9 +233,27 @@ export default function NotificationBell() {
           {/* Overlay for mobile */}
           <div 
             className="notification-overlay"
-            onClick={() => setIsOpen(false)}
+            onClick={(e) => {
+              // Solo cerrar si el clic es directamente en el overlay, no en elementos hijos
+              if (e.target === e.currentTarget) {
+                setIsOpen(false);
+              }
+            }}
+            onMouseDown={(e) => {
+              // Prevenir que el dropdown capture el evento del overlay
+              if (e.target === e.currentTarget) {
+                e.stopPropagation();
+              }
+            }}
           />
-          <div className="notification-dropdown" style={{ 
+          <div 
+            ref={dropdownContentRef}
+            className="notification-dropdown" 
+            onMouseDown={(e) => {
+              // Prevenir que el overlay capture eventos dentro del dropdown
+              e.stopPropagation();
+            }}
+            style={{ 
             position: 'fixed',
             top: `${dropdownPosition.top}px`,
             right: `${dropdownPosition.right}px`,
@@ -185,11 +270,21 @@ export default function NotificationBell() {
             zIndex: 100000
           }}>
           {/* Header */}
-          <div className="p-4 border-b border-[#e7e5e4] flex items-center justify-between">
+          <div 
+            className="p-4 border-b border-[#e7e5e4] flex items-center justify-between"
+            onMouseDown={(e) => {
+              // Prevenir que el overlay capture el evento
+              e.stopPropagation();
+            }}
+          >
             <h3 className="text-lg font-normal text-neutral-900">Notificaciones</h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
+                onMouseDown={(e) => {
+                  // Prevenir que el overlay capture el evento
+                  e.stopPropagation();
+                }}
                 className="text-sm text-[#032567] hover:text-[#1A6EFF] transition-colors"
               >
                 Marcar todas como leídas
@@ -198,7 +293,13 @@ export default function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="overflow-y-auto flex-1">
+          <div 
+            className="overflow-y-auto flex-1"
+            onMouseDown={(e) => {
+              // Prevenir que el overlay capture eventos dentro de la lista
+              e.stopPropagation();
+            }}
+          >
             {loading ? (
               <div className="p-4 text-center text-neutral-600">Cargando...</div>
             ) : notifications.length === 0 ? (
@@ -210,7 +311,11 @@ export default function NotificationBell() {
                   className={`p-4 border-b border-[#e7e5e4] hover:bg-[#fafafa] transition-colors cursor-pointer ${
                     !notification.isRead ? 'bg-[#fafafa]' : ''
                   }`}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={(e) => handleNotificationClick(notification, e)}
+                  onMouseDown={(e) => {
+                    // Prevenir que el overlay capture el evento
+                    e.stopPropagation();
+                  }}
                 >
                   <div className="flex items-start gap-3">
                     {!notification.isRead && (
