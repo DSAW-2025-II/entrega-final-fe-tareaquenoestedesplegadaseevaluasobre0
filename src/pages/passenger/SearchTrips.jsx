@@ -1386,7 +1386,7 @@ export default function SearchTrips() {
                           onMouseEnter={(e) => e.target.style.color = '#1A6EFF'}
                           onMouseLeave={(e) => e.target.style.color = '#032567'}
                         >
-                          {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName} →
+                          {selectedTrip.driver?.firstName} {selectedTrip.driver?.lastName} {'→'}
                         </Link>
                       ) : (
                         <p style={{
@@ -1400,12 +1400,12 @@ export default function SearchTrips() {
                         </p>
                       );
                     })()}
-                  </div>
                     {selectedTrip.vehicle && (
                       <p style={{
                         fontSize: '0.9rem',
                         color: '#57534e',
                         margin: 0,
+                        marginTop: '8px',
                         fontFamily: 'Inter, sans-serif'
                       }}>
                         {selectedTrip.vehicle.brand} {selectedTrip.vehicle.model}
