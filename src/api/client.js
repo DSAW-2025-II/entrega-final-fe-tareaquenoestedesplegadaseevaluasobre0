@@ -18,10 +18,22 @@ export function setAuthStore(store) {
   authStore = store;
 }
 
-// Obtener token CSRF de las cookies del navegador
+// Obtener token CSRF de las cookies del navegador o de sessionStorage (backup)
 function getCsrfToken() {
-  const match = document.cookie.match(/csrf_token=([^;]+)/);
-  return match ? match[1] : null;
+  // Primero intentar leer de cookies (método principal)
+  const cookieMatch = document.cookie.match(/csrf_token=([^;]+)/);
+  if (cookieMatch) {
+    return cookieMatch[1];
+  }
+  
+  // Si no está en cookies, intentar leer de sessionStorage (backup para producción)
+  // El token CSRF se guarda aquí después del login como respaldo
+  const storedToken = sessionStorage.getItem('csrf_token');
+  if (storedToken) {
+    return storedToken;
+  }
+  
+  return null;
 }
 
 // Interceptor de peticiones: agrega token CSRF y configura headers antes de enviar

@@ -26,6 +26,13 @@ export default function Login() {
 
     try {
       const user = await login(data.corporateEmail, data.password);
+      
+      // Guardar token CSRF en sessionStorage como backup (si viene en la respuesta)
+      // Esto ayuda en producción cuando las cookies cross-origin pueden tener problemas
+      if (user.csrfToken) {
+        sessionStorage.setItem('csrf_token', user.csrfToken);
+      }
+      
       // Obtener perfil completo incluyendo profilePhotoUrl
       const fullProfile = await getCurrentUser();
       setUser(fullProfile);

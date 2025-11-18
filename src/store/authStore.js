@@ -19,11 +19,14 @@ const useAuthStore = create(
         }),
 
       // Limpiar usuario (cuando expira la sesión)
-      clearUser: () => 
+      clearUser: () => {
+        // Limpiar token CSRF del sessionStorage cuando se limpia la sesión
+        sessionStorage.removeItem('csrf_token');
         set({ 
           user: null, 
           isAuthenticated: false 
-        }),
+        });
+      },
 
       // Cerrar sesión: limpia estado y localStorage
       logout: () => {
@@ -33,6 +36,8 @@ const useAuthStore = create(
         });
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('token');
+        // Limpiar token CSRF del sessionStorage
+        sessionStorage.removeItem('csrf_token');
         return Promise.resolve();
       },
 
